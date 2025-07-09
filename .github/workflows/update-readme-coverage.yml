@@ -1,0 +1,101 @@
+name: Update README Coverage
+
+on:
+  pull_request:
+    branches: [none]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: Library_Env
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Create .env file from variables and secrets
+      run: |
+        echo "POSTGRES_USER=${{ vars.POSTGRES_USER }}" >> .env
+        echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> .env
+        echo "POSTGRES_HOST=${{ vars.POSTGRES_HOST }}" >> .env
+        echo "POSTGRES_PORT=${{ vars.POSTGRES_PORT }}" >> .env
+        echo "POSTGRES_DB=${{ vars.POSTGRES_DB }}" >> .env
+
+        echo "TEST_POSTGRES_USER=${{ vars.TEST_POSTGRES_USER }}" >> .env
+        echo "TEST_POSTGRES_PASSWORD=${{ secrets.TEST_POSTGRES_PASSWORD }}" >> .env
+        echo "TEST_POSTGRES_HOST=${{ vars.TEST_POSTGRES_HOST }}" >> .env
+        echo "TEST_POSTGRES_PORT=${{ vars.TEST_POSTGRES_PORT }}" >> .env
+        echo "TEST_POSTGRES_DB=${{ vars.TEST_POSTGRES_DB }}" >> .env
+
+        echo "ADMIN_TG_ID=${{ secrets.ADMIN_TG_ID }}" >> .env
+        echo "BOT_TOKEN=${{ secrets.BOT_TOKEN }}" >> .env
+
+    - name: Load environment variables from .env
+      run: |
+        set -o allexport
+        source .env
+        set +o allexport
+
+    - name: Start services with Docker Compose
+      run: |
+        echo "Starting Docker Compose..."
+        docker compose up -d
+
+    - name: Wait for test_db to be ready
+      run: |
+        for i in {1..30}; do
+          if docker exec test_db pg_isready -U root; then
+            echo "Database is ready!"
+            break
+          fi
+          echo "Waiting for database..."
+          sleep 2
+        done
+
+    - name: Run test DB migrations
+      run: make upgrade_test
+
+    - name: Run tests and generate coverage report in Docker
+      run: |
+        docker exec app coverage run --source=db/queries -m pytest
+        docker exec app coverage report > coverage.txt
+
+    - name: Update coverage report in README
+      run: |
+        {
+          echo '```'
+          cat coverage.txt
+          echo '```'
+        } > coverage_content.txt
+
+        awk '
+          BEGIN { in_block = 0 }
+          /<!-- COVERAGE START -->/ {
+            print
+            while ((getline line < "coverage_content.txt") > 0) print line
+            in_block = 1
+            next
+          }
+          /<!-- COVERAGE END -->/ {
+            in_block = 0
+            print
+            next
+          }
+          !in_block
+        ' README.md > README.new && mv README.new README.md
+
+    - name: Commit and push README changes
+      run: |
+        git config --global user.email "actions@users.noreply.github.com"
+        git config --global user.name "README-bot"
+        git add README.md
+    
+        if ! git diff --cached --quiet; then
+          git commit -m "Update README with latest coverage report"
+          git fetch origin
+          git rebase origin/"$GITHUB_HEAD_REF"
+          git push origin HEAD:"$GITHUB_HEAD_REF"
+        fi

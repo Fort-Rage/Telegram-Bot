@@ -1,0 +1,71 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [none]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Connect and deploy
+      uses: appleboy/ssh-action@master
+      with:
+        host: 194.32.140.202
+        username: ubuntu
+        key: |
+          -----BEGIN OPENSSH PRIVATE KEY-----
+          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
+          -----END OPENSSH PRIVATE KEY-----
+        script: |
+          cd /home/ubuntu/prod-bot
+          git pull origin main
+          docker compose down
+          docker compose up -d --build
