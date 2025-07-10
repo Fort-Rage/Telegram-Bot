@@ -64,12 +64,12 @@ def upgrade() -> None:
                     sa.Column('employee_id', sa.UUID(), nullable=False),
                     sa.Column('role_id', sa.UUID(), nullable=False),
                     sa.Column('is_active', sa.Boolean(), server_default=sa.text('true'), nullable=False),
-                    sa.Column('last_seen', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
+                    sa.Column('last_seen_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
                     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
                     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-                    sa.ForeignKeyConstraint(['employee_id'], ['employees.id'], ondelete='CASCADE'),
-                    sa.ForeignKeyConstraint(['role_id'], ['roles.id'], ondelete='CASCADE'),
-                    sa.ForeignKeyConstraint(['tg_user_id'], ['tg_users.id'], ondelete='CASCADE'),
+                    sa.ForeignKeyConstraint(['employee_id'], ['employees.id']),
+                    sa.ForeignKeyConstraint(['role_id'], ['roles.id']),
+                    sa.ForeignKeyConstraint(['tg_user_id'], ['tg_users.id']),
                     sa.PrimaryKeyConstraint('id')
                     )
     op.create_table('role_permissions',
