@@ -30,17 +30,17 @@ class AppUsers(Base):
     id: Mapped[uuid6.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid6.uuid7)
     tg_user_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("tg_users.id", ondelete="CASCADE"),
+        ForeignKey("tg_users.id"),
         nullable=False
     )
     employee_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("employees.id", ondelete="CASCADE"),
+        ForeignKey("employees.id"),
         nullable=False
     )
     role_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("roles.id", ondelete="CASCADE"),
+        ForeignKey("roles.id"),
         nullable=False
     )
 
