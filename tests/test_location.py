@@ -77,7 +77,7 @@ async def test_location_delete(db_session, sample_locations, mocker):
     error_loc = await LocationObj().remove(location_id=3, session=db_session)
     assert error_loc is False
 
-    mocker.patch.object(db_session,'delete', side_effect=SQLAlchemyError("DB error"))
+    mocker.patch.object(db_session, 'delete', side_effect=SQLAlchemyError("DB error"))
     error_delete = await LocationObj().remove(location_id=2, session=db_session)
     assert error_delete is None
 
