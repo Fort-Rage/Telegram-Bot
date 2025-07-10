@@ -33,9 +33,9 @@ class AppUsers(Base):
         ForeignKey("tg_users.id", ondelete="CASCADE"),
         nullable=False
     )
-    employer_id: Mapped[uuid6.UUID] = mapped_column(
+    employee_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("employers.id", ondelete="CASCADE"),
+        ForeignKey("employees.id", ondelete="CASCADE"),
         nullable=False
     )
     role_id: Mapped[uuid6.UUID] = mapped_column(
@@ -45,12 +45,12 @@ class AppUsers(Base):
     )
 
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('true'))
-    last_seen: Mapped[DateTime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    last_seen_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False, server_default=func.now())
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
     tg_user: Mapped["TelegramUsers"] = relationship(back_populates="app_user")
-    employer: Mapped["Employers"] = relationship(back_populates="app_user")
+    employee: Mapped["Employees"] = relationship(back_populates="app_user")
     role: Mapped["Roles"] = relationship(back_populates="app_users")
 
     books: Mapped[list["Book"]] = relationship(back_populates="owner")
@@ -58,8 +58,8 @@ class AppUsers(Base):
     orders: Mapped[list["Order"]] = relationship(back_populates="user")
 
 
-class Employers(Base):
-    __tablename__ = 'employers'
+class Employees(Base):
+    __tablename__ = 'employees'
 
     id: Mapped[uuid6.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid6.uuid7)
     full_name: Mapped[str] = mapped_column(String, nullable=False)
@@ -69,7 +69,7 @@ class Employers(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 
-    app_user: Mapped["AppUsers"] = relationship(back_populates="employer")
+    app_user: Mapped["AppUsers"] = relationship(back_populates="employee")
 
 
 class Roles(Base):
