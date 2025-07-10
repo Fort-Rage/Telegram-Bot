@@ -12,7 +12,8 @@ async def create_admin(session_factory):
     async with session_factory() as session:
         try:
             tg_id = os.getenv('ADMIN_TG_ID')
-            user = TelegramUsers(telegram_id=str(tg_id), username='Vention')
+            username = os.getenv('ADMIN_USERNAME')
+            user = TelegramUsers(telegram_id=str(tg_id), username=str(username))
             session.add(user)
             await session.commit()
             print('Admin created')
