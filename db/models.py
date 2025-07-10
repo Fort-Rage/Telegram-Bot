@@ -1,5 +1,5 @@
 import enum
-import uuid
+import uuid6
 
 from typing import Optional
 from sqlalchemy import ForeignKey, String, Enum, Boolean, DateTime, func, LargeBinary, text
@@ -14,7 +14,7 @@ class Base(DeclarativeBase):
 class TelegramUsers(Base):
     __tablename__ = 'tg_users'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid6.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid6.uuid7)
     telegram_id: Mapped[str] = mapped_column(String, unique=True)
     username: Mapped[str] = mapped_column(String)
 
@@ -27,18 +27,18 @@ class TelegramUsers(Base):
 class AppUsers(Base):
     __tablename__ = 'app_users'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tg_user_id: Mapped[uuid.UUID] = mapped_column(
+    id: Mapped[uuid6.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid6.uuid7)
+    tg_user_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("tg_users.id", ondelete="CASCADE"),
         nullable=False
     )
-    employer_id: Mapped[uuid.UUID] = mapped_column(
+    employer_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("employers.id", ondelete="CASCADE"),
         nullable=False
     )
-    role_id: Mapped[uuid.UUID] = mapped_column(
+    role_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("roles.id", ondelete="CASCADE"),
         nullable=False
@@ -61,7 +61,7 @@ class AppUsers(Base):
 class Employers(Base):
     __tablename__ = 'employers'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid6.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid6.uuid7)
     full_name: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('false'))
@@ -75,7 +75,7 @@ class Employers(Base):
 class Roles(Base):
     __tablename__ = 'roles'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid6.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid6.uuid7)
     name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     description: Mapped[str] = mapped_column(String, nullable=True)
 
@@ -92,12 +92,12 @@ class Roles(Base):
 class RolePermission(Base):
     __tablename__ = 'role_permissions'
 
-    role_id: Mapped[uuid.UUID] = mapped_column(
+    role_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("roles.id", ondelete="CASCADE"),
         primary_key=True
     )
-    permission_id: Mapped[uuid.UUID] = mapped_column(
+    permission_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("permissions.id", ondelete="CASCADE"),
         primary_key=True
@@ -107,7 +107,7 @@ class RolePermission(Base):
 class Permissions(Base):
     __tablename__ = 'permissions'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid6.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid6.uuid7)
     name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     description: Mapped[str] = mapped_column(String, nullable=True)
 
@@ -136,16 +136,16 @@ class Category(str, enum.Enum):
 class Book(Base):
     __tablename__ = "books"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid6.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid6.uuid7)
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String, nullable=True)
     author: Mapped[str] = mapped_column(String, nullable=False)
-    owner_id: Mapped[uuid.UUID] = mapped_column(
+    owner_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("app_users.id", ondelete="CASCADE"),
         nullable=False
     )
-    location_id: Mapped[uuid.UUID] = mapped_column(
+    location_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("locations.id", ondelete="CASCADE"),
         nullable=False
@@ -162,8 +162,8 @@ class Book(Base):
 class BookCategory(Base):
     __tablename__ = "books_categories"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    book_id: Mapped[uuid.UUID] = mapped_column(
+    id: Mapped[uuid6.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid6.uuid7)
+    book_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("books.id", ondelete="CASCADE"),
         nullable=False
@@ -179,8 +179,8 @@ class BookCategory(Base):
 class WishList(Base):
     __tablename__ = 'wishlists'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    app_user_id: Mapped[uuid.UUID] = mapped_column(
+    id: Mapped[uuid6.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid6.uuid7)
+    app_user_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("app_users.id", ondelete="CASCADE"),
         nullable=False
@@ -203,13 +203,13 @@ class OrderStatus(str, enum.Enum):
 class Order(Base):
     __tablename__ = 'orders'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    app_user_id: Mapped[uuid.UUID] = mapped_column(
+    id: Mapped[uuid6.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid6.uuid7)
+    app_user_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("app_users.id", ondelete="CASCADE"),
         nullable=False
     )
-    book_id: Mapped[uuid.UUID] = mapped_column(
+    book_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("books.id", ondelete="CASCADE"),
         nullable=False
@@ -220,12 +220,12 @@ class Order(Base):
         default=OrderStatus.RESERVED
     )
 
-    taken_from_id: Mapped[uuid.UUID] = mapped_column(
+    taken_from_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("locations.id", ondelete="SET NULL"),
         nullable=True
     )
-    returned_to_id: Mapped[uuid.UUID] = mapped_column(
+    returned_to_id: Mapped[uuid6.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("locations.id", ondelete="SET NULL"),
         nullable=True
@@ -266,7 +266,7 @@ class City(str, enum.Enum):
 class Location(Base):
     __tablename__ = 'locations'
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid6.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid6.uuid7)
     city: Mapped[City] = mapped_column(
         Enum(City, native_enum=False),
         nullable=False
