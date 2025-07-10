@@ -28,6 +28,9 @@ downgrade_test:
 downgrade_test_to:
 	$(ALEMBIC_CMD) --name=test_db downgrade "$(name)"
 
+version:
+	$(ALEMBIC_CMD) --name=main_db current
+
 # BOTH DBs
 upgrade_all: upgrade upgrade_test
 
