@@ -131,6 +131,7 @@ def order_cancel_kb(book_id: int, location_id: int, is_admin: False):
     return keyboard
 
 
+# TODO: change to the InlineKeyboardBuilder
 def owners_kb(result):
     return ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text=f'{user.name} {user.surname}')] for user in result],
