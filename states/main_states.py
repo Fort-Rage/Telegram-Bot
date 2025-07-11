@@ -2,8 +2,8 @@ from aiogram.fsm.state import StatesGroup, State
 
 
 class Reg(StatesGroup):
-    name = State()
-    surname = State()
+    email = State()
+    code = State()
 
 
 class Wish(StatesGroup):
