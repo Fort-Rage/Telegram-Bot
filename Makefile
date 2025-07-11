@@ -12,11 +12,17 @@ new_migration:
 upgrade:
 	$(ALEMBIC_CMD) --name=main_db upgrade head
 
+upgrade_sql:
+	$(ALEMBIC_CMD) --name=main_db upgrade head --sql > db/migrations/Plain_SQL/Full_Migration.sql
+
 downgrade:
 	$(ALEMBIC_CMD) --name=main_db downgrade -1
 
 downgrade_to:
 	$(ALEMBIC_CMD) --name=main_db downgrade "$(name)"
+
+downgrade_to_base:
+	$(ALEMBIC_CMD) --name=main_db downgrade base
 
 # TEST DB
 upgrade_test:
@@ -27,6 +33,9 @@ downgrade_test:
 
 downgrade_test_to:
 	$(ALEMBIC_CMD) --name=test_db downgrade "$(name)"
+
+version:
+	$(ALEMBIC_CMD) --name=main_db current
 
 # BOTH DBs
 upgrade_all: upgrade upgrade_test

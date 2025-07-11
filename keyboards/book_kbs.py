@@ -186,4 +186,3 @@ def show_books_kb(books: list) -> InlineKeyboardMarkup:
     ))
 
     return keyboard.as_markup()
-
