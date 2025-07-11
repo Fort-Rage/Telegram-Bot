@@ -1,32 +1,34 @@
-from aiogram import Router, F
+from aiogram import Router
 from aiogram.filters import CommandStart, CommandObject
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 from db.database import async_session_factory
 from db.models import OrderStatus
 from db.queries.book_crud import BookObj
+from db.queries.employee_crud import EmployeeObj
 from db.queries.order_crud import OrderObj
-from db.queries.user_crud import UserObj
+from db.queries.role_crud import RoleObj
+from db.queries.tg_user_crud import TgUserObj
+from db.queries.app_user_crud import AppUserObj
 from states.main_states import Reg
-from keyboards import user_kbs, order_kbs
+from keyboards import order_kbs
 
 router = Router()
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, command: CommandObject):
+async def cmd_start(message: Message, command: CommandObject, state: FSMContext):
     args = command.args
     telegram_id = message.from_user.id
 
     async with async_session_factory() as session:
-        is_user_registered = await UserObj().is_user_registered(session=session, telegram_id=telegram_id)
+        is_user_registered = await AppUserObj().is_user_registered(session=session, telegram_id=str(telegram_id))
 
     if not is_user_registered:
         await message.answer(
-            "Welcome! 👋 Let's get you registered so I can better assist you. "
-            "It will only take a minute. Shall we get started?",
-            reply_markup=user_kbs.registration_kb
+            "Welcome! 👋 To get started, please enter your email address. We'll use it to verify your identity."
         )
+        await state.set_state(Reg.email)
         return
 
     if args:
@@ -67,51 +69,41 @@ async def cmd_start(message: Message, command: CommandObject):
     )
 
 
-@router.callback_query(F.data == "reg_no")
-async def reg_stop(callback: CallbackQuery):
-    await callback.answer()
-    await callback.message.delete_reply_markup()
-    await callback.message.answer("If you change your mind, just type /start. See you soon!")
+@router.message(Reg.email)
+async def send_verification_code(message: Message, state: FSMContext):
+    await state.update_data(email=message.text)
+    # send_verification_code(email)
+    # add user in table Employees
+    await message.answer("A 6-digit verification code has been sent to your email address."
+                         "Please enter the code here in the bot to verify your email.")
+    await state.set_state(Reg.code)
 
 
-@router.callback_query(F.data == "reg_yes")
-async def reg_start(callback: CallbackQuery, state: FSMContext):
-    async with async_session_factory() as session:
-        is_user_registered = await UserObj().is_user_registered(session=session, telegram_id=callback.from_user.id)
-
-    if is_user_registered:
-        await callback.answer("You are already registered!")
-        await callback.message.delete_reply_markup()
-    else:
-        await callback.answer()
-        await callback.message.delete_reply_markup()
-        await callback.message.answer("What's your first name? 😊 Please enter your name:")
-        await state.set_state(Reg.name)
-
-
-@router.message(Reg.name)
-async def reg_name(message: Message, state: FSMContext):
-    await state.update_data(name=message.text.lower().capitalize())
-    state_data = await state.get_data()
-    await message.answer(f"Great, {state_data.get('name')}! Now, please enter your last name:")
-    await state.set_state(Reg.surname)
-
-
-@router.message(Reg.surname)
-async def reg_surname(message: Message, state: FSMContext):
-    await state.update_data(surname=message.text.lower().capitalize())
-    state_data = await state.get_data()
+@router.message(Reg.code)
+async def reg_code(message: Message, state: FSMContext):
+    data = await state.get_data()
 
     async with async_session_factory() as session:
-        success = await UserObj().create(session=session,
-                                         telegram_id=message.from_user.id,
-                                         name=state_data.get('name'),
-                                         surname=state_data.get('surname'))
+        tg_user = await TgUserObj().get_obj_by_telegram_id(session=session, telegram_id=str(message.from_user.id))
+        employee = await EmployeeObj().get_obj_by_email(session=session, email=data.get('email'))
+        role = await RoleObj().get_obj_by_name(session=session, name='user')
+
+        if not tg_user or not employee or not role:
+            await message.answer("❌ Registration failed. Some data is missing or incorrect.")
+            return
+
+        success = await AppUserObj().create(
+            session=session,
+            telegram_id=str(message.from_user.id),
+            tg_user_id=tg_user.id,
+            employee_id=employee.id,
+            role_id=role.id
+        )
 
     if success:
         await message.answer(
             f"✅ <b>Registration Complete!</b>\n"
-            f"👤 You are now registered as <b>{state_data.get('name')} {state_data.get('surname')}</b>\n\n"
+            f"👤 You are now registered!</b>\n\n"
             f"🚀 Enjoy using the bot! Here are some useful commands to get started:\n\n"
             f"📚 /books – Explore our full book collection\n"
             f"📍 /locations – Discover available pickup locations\n"
