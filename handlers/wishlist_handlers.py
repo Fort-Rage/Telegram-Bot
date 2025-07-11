@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
 
 from db.database import async_session_factory
-from db.queries.user_crud import UserObj
+from db.queries.app_user_crud import AppUserObj
 from db.queries.wishlist_crud import WishlistObj
 from handlers.registration_handler import cmd_start
 from states.main_states import Wish, WishUpdBookTitle, WishUpdAuthor, WishUpdComment

@@ -6,7 +6,7 @@ from sqlalchemy.orm import joinedload
 
 from db.database import async_session_factory
 from db.models import Order, OrderStatus, Book
-from db.queries.user_crud import UserObj
+from db.queries.app_user_crud import AppUserObj
 from interface import CRUD
 
 logger = logging.getLogger(__name__)

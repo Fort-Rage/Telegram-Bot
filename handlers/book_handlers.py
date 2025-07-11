@@ -8,7 +8,7 @@ from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from db.database import async_session_factory
 from db.queries.book_crud import BookObj
 from db.queries.location_crud import LocationObj
-from db.queries.user_crud import UserObj
+from db.queries.app_user_crud import AppUserObj
 from keyboards import book_kbs as bk_kb
 from keyboards import location_kbs as loc_kb
 from states.main_states import Books, BookUpdate

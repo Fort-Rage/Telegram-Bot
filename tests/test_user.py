@@ -2,8 +2,8 @@ import pytest
 
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
-from db.models import User
-from db.queries.user_crud import UserObj
+from db.models import AppUsers
+from db.queries.app_user_crud import AppUserObj
 
 
 @pytest.mark.asyncio
