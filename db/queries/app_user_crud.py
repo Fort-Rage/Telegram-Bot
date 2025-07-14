@@ -1,6 +1,7 @@
 import logging
 
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from uuid6 import UUID
 
 from db.database import async_session_factory
@@ -102,3 +103,44 @@ class AppUserObj(CRUD):
         except Exception as e:
             logger.error(f"Error while checking admin status (app_user_id={app_user_id}): {e}")
             return False
+
+    @staticmethod
+    async def get_app_user_id(session: async_session_factory, telegram_id: str) -> UUID | None:
+        try:
+            tg_user = await TgUserObj().get_obj_by_telegram_id(session=session, telegram_id=telegram_id)
+            if not tg_user:
+                return None
+
+            query = select(AppUsers).where(AppUsers.tg_user_id == tg_user.id)
+            result = await session.execute(query)
+            app_user = result.scalar_one_or_none()
+
+            if not app_user:
+                return None
+            return app_user.id
+        except Exception as e:
+            logger.error(f"Error while getting AppUser id by telegram_id={telegram_id}: {e}")
+            return None
+
+    @staticmethod
+    async def get_employee_fullname(session: async_session_factory, app_user_id: UUID) -> str | None:
+        try:
+            query = (
+                select(AppUsers)
+                .options(selectinload(AppUsers.employee))
+                .where(AppUsers.id == app_user_id)
+            )
+            result = await session.execute(query)
+            app_user = result.scalar_one_or_none()
+
+            if not app_user:
+                return None
+
+            if not app_user.employee:
+                return None
+
+            return app_user.employee.full_name
+
+        except Exception as e:
+            logger.error(f"Error while getting employee fullname for AppUser id={app_user_id}: {e}")
+            return None
