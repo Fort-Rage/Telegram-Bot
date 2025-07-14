@@ -47,7 +47,7 @@ def show_locations_kb(locations: list) -> InlineKeyboardMarkup:
     for location in locations:
         builder.add(InlineKeyboardButton(
             text=f"{location.city.value}: {location.room}",
-            callback_data=f"show_qrcode_{location.location_id}"
+            callback_data=f"show_qrcode_{location.id}"
         ))
 
     builder.add(InlineKeyboardButton(text="⬅️ Back to Menu", callback_data="back_to_loc_menu"))
