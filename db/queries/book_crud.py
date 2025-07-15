@@ -80,6 +80,8 @@ class BookObj(CRUD):
             for field, value in updates.items():
                 if field == "owner_id":
                     setattr(book, field, value)
+                elif field == "description":
+                    setattr(book, field, value if value != '-' else None)
                 elif field != "categories":
                     setattr(book, field, value)
 

@@ -56,10 +56,11 @@ async def add_book_handler_author(message: Message, state: FSMContext):
     await state.set_state(Books.description)
 
 
+# TODO: Make description optional (allow empty value) like comments in Wishlist
 @book_router.message(Books.description)
 async def show_book_handler_desc(message: Message, state: FSMContext):
     await state.update_data(author=message.text)
-    await message.answer('📝 Enter the book description:')
+    await message.answer("📝 Enter the book description (or type '-' to skip):")
     await state.set_state(Books.owner)
 
 
@@ -138,13 +139,16 @@ async def show_book_handler(message: Message, state: FSMContext):
     await state.update_data(loc_room=loc_room)
     data = await state.get_data()
     chosen_categories = data.get("chosen_categories", [])
+
+    description = data.get('description')
+    description = description if description != '-' else '<i>no description</i>'
     new_book = (
         '<b>Do you want to confirm the creation of this book?</b>\n\n'
         f"📚 <b>{data.get('title')}</b>\n"
         f"✍️ <b>Author:</b> {data.get('author')}\n\n"
         f"📍 <b>Location:</b> {loc_city}: Room #{loc_room}\n"
         f"👤 <b>Owner:</b> {data.get('owner')}\n\n"
-        f"📖 <b>Description:</b>\n{data.get('description')}\n\n"
+        f"📖 <b>Description:</b>\n{description}\n\n"
         f"🏷 <b>Category:</b>\n{', '.join(chosen_categories)}"
     )
     await message.answer(new_book, reply_markup=bk_kb.create_book_kb(), parse_mode=ParseMode.HTML)
@@ -153,13 +157,14 @@ async def show_book_handler(message: Message, state: FSMContext):
 @book_router.callback_query(F.data == 'create_book_confirm')
 async def create_book_handler(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
-
     data = await state.get_data()
+    description = None if data.get('description') == "-" else data.get('description')
+
     async with async_session_factory() as session:
         loc_id = await LocationObj().get_location_id(session=session, city=data.get('loc_city'),
                                                      room=data.get('loc_room'))
         success = await BookObj().create(session=session, title=data.get('title'), author=data.get('author'),
-                                         description=data.get('description'), owner_id=data.get('owner_id'),
+                                         description=description, owner_id=data.get('owner_id'),
                                          categories=data.get('categories'), location_id=loc_id)
 
     if success:
@@ -319,11 +324,12 @@ async def select_book(callback: CallbackQuery, state: FSMContext):
         owner_fullname = await AppUserObj().get_employee_fullname(session=session, app_user_id=app_user_id)
         location = await LocationObj().get_obj(session=session, location_id=book.location_id)
 
+    description = book.description if book.description else '<i>no description</i>'
     text = (
         f"📚 <b>{book.title}</b>\n"
         f"✍️ <b>Author:</b> {book.author}\n"
         f"👤 <b>Owner:</b> {owner_fullname}\n\n"
-        f"📝 <b>Description:</b>\n{book.description}\n\n"
+        f"📝 <b>Description:</b>\n{description}\n\n"
         f"📍 <b>Location:</b> {location.city.value}, Room #{location.room}\n\n"
         f"🏷 <b>Categories:</b> \n{categories}\n\n"
     )
@@ -366,15 +372,18 @@ async def set_author(message: Message, state: FSMContext):
 async def update_description(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await callback.message.edit_reply_markup(reply_markup=None)
-    await callback.message.answer('Input new description:')
+    await callback.message.answer("📝 Enter the new description:\n\n(Type '-' to delete the description)")
     await state.set_state(BookUpdate.description)
 
 
 @book_router.message(BookUpdate.description)
 async def set_description(message: Message, state: FSMContext):
     await save_book_update(state, "description", message.text)
-    await message.answer(f"New description: {message.text}")
-    await message.answer(f"To save all changes, press «💾 Save Changes»", reply_markup=bk_kb.book_update_kb())
+    if message.text == '-':
+        await message.answer("Description has been deleted.")
+    else:
+        await message.answer(f"New description:\n{message.text}")
+    await message.answer("To save all changes, press «💾 Save Changes»", reply_markup=bk_kb.book_update_kb())
 
 
 @book_router.callback_query(F.data == "update_owner")
@@ -554,10 +563,11 @@ async def book_open(callback: CallbackQuery):
     categories = "\n".join(f"• {cat}" for cat in book_categories)
 
     if book:
+        description = book.description if book.description else '<i>no description</i>'
         text = (
             f"📚 <b>{book.title}</b>\n"
             f"✍️ <b>Author:</b> {book.author}\n"
-            f"📖 <b>Description:</b>\n{book.description}\n\n"
+            f"📖 <b>Description:</b>\n{description}\n\n"
             f"📍 <b>Location:</b>\n{location.city.value}: Room #{location.room}\n\n"
             f"🏷 <b>Categories:</b>\n{categories}"
         )
