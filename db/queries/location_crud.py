@@ -84,8 +84,6 @@ class LocationObj(CRUD):
     async def get_obj(self, session: async_session_factory, location_id: UUID) -> Location | None:
         try:
             location = await session.get(Location, location_id)
-            if not location:
-                return None
             return location
         except SQLAlchemyError as e:
             logger.error(f"Error while retrieving location (id={location_id}): {e}")
@@ -121,5 +119,5 @@ class LocationObj(CRUD):
             )
             return input_file
         except SQLAlchemyError as e:
-            logger.error(f"Error while retrieving QR code for location (id={location_id}): {e}")
+            logger.error(f"Error while retrieving QR code for Location (id={location_id}): {e}")
             return None
