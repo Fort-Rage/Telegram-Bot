@@ -43,15 +43,13 @@ class WishlistObj(CRUD):
 
     async def update(self, session: async_session_factory, field: str, wish_id: UUID, new_value: str) -> bool:
         try:
-            query = select(WishList).where(WishList.id == wish_id)
-            result = await session.execute(query)
-            wishlist_item = result.scalar_one_or_none()
+            wishlist_item = await session.get(WishList, wish_id)
+            if not wishlist_item:
+                return False
 
-            if wishlist_item:
-                setattr(wishlist_item, field, new_value)
-                await session.commit()
-                return True
-            return False
+            setattr(wishlist_item, field, new_value)
+            await session.commit()
+            return True
         except SQLAlchemyError as e:
             await session.rollback()
             field_name = field.replace('_', ' ')
@@ -63,15 +61,13 @@ class WishlistObj(CRUD):
 
     async def remove(self, session: async_session_factory, wish_id: UUID) -> bool:
         try:
-            query = select(WishList).where(WishList.id == wish_id)
-            result = await session.execute(query)
-            wishlist_item = result.scalar_one_or_none()
+            wishlist_item = await session.get(WishList, wish_id)
+            if not wishlist_item:
+                return False
 
-            if wishlist_item:
-                await session.delete(wishlist_item)
-                await session.commit()
-                return True
-            return False
+            await session.delete(wishlist_item)
+            await session.commit()
+            return True
         except SQLAlchemyError as e:
             await session.rollback()
             logger.error(f"Error while removing WishList item with id={wish_id}: {e}")
@@ -79,9 +75,7 @@ class WishlistObj(CRUD):
 
     async def get_obj(self, session: async_session_factory, wish_id: UUID) -> WishList | None:
         try:
-            query = select(WishList).where(WishList.id == wish_id)
-            result = await session.execute(query)
-            wishlist_item = result.scalar_one_or_none()
+            wishlist_item = await session.get(WishList, wish_id)
             return wishlist_item
         except SQLAlchemyError as e:
             logger.error(f"Error while retrieving WishList item (id={wish_id}): {e}")

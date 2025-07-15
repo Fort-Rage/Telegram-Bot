@@ -70,12 +70,12 @@ class LocationObj(CRUD):
     async def remove(self, session: async_session_factory, location_id: UUID) -> bool:
         try:
             location = await session.get(Location, location_id)
-            if location:
-                await session.delete(location)
-                await session.commit()
-                return True
-            else:
+            if not location:
                 return False
+
+            await session.delete(location)
+            await session.commit()
+            return True
         except SQLAlchemyError as e:
             await session.rollback()
             logger.error(f"Error while removing location (id={location_id}): {e}")

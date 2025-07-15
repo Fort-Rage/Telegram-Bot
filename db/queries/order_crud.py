@@ -97,15 +97,13 @@ class OrderObj(CRUD):
     @staticmethod
     async def update_status(session: async_session_factory, order_id: int, new_status: str):
         try:
-            query = select(Order).where(Order.order_id == order_id)
-            result = await session.execute(query)
-            order = result.scalar_one_or_none()
+            order = await session.get(Order, order_id)
+            if not order:
+                return False
 
-            if order:
-                order.status = new_status
-                await session.commit()
-                return True
-            return False
+            order.status = new_status
+            await session.commit()
+            return True
         except SQLAlchemyError as e:
             await session.rollback()
             logger.error(f"Error when updating status of order: {e}")
@@ -119,23 +117,21 @@ class OrderObj(CRUD):
             location_id: int
     ):
         try:
-            query = select(Order).where(Order.order_id == order_id)
-            result = await session.execute(query)
-            order = result.scalar_one_or_none()
+            order = await session.get(Order, order_id)
+            if not order:
+                return False
 
-            if order:
-                order.status = new_status
-                order.returned_to_id = location_id
+            order.status = new_status
+            order.returned_to_id = location_id
 
-                query_book = select(Book).where(Book.book_id == order.book_id)
-                result_book = await session.execute(query_book)
-                book = result_book.scalar_one_or_none()
+            book = await session.get(Book, order.book_id)
 
-                if book:
-                    book.location_id = location_id
-                    await session.commit()
-                    return True
-            return False
+            if not book:
+                return False
+
+            book.location_id = location_id
+            await session.commit()
+            return True
         except SQLAlchemyError as e:
             await session.rollback()
             logger.error(f"Error when updating status and location of order: {e}")

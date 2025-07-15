@@ -49,9 +49,7 @@ class AppUserObj(CRUD):
 
     async def get_obj(self, session: async_session_factory, app_user_id: UUID) -> AppUsers | None:
         try:
-            query = select(AppUsers).where(AppUsers.id == app_user_id)
-            result = await session.execute(query)
-            app_user = result.scalar_one_or_none()
+            app_user = await session.get(AppUsers, app_user_id)
             return app_user
         except SQLAlchemyError as e:
             logger.error(f"Error while retrieving app user (id={app_user_id}): {e}")

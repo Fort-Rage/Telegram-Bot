@@ -74,6 +74,9 @@ class BookObj(CRUD):
         try:
             book = await session.get(Book, book_id)
 
+            if not book:
+                return False
+
             for field, value in updates.items():
                 if field == "owner_id":
                     setattr(book, field, value)
