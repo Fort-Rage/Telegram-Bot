@@ -2,6 +2,7 @@ import logging
 
 from typing import Optional
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from uuid6 import UUID
 
 from db.database import async_session_factory
@@ -20,7 +21,7 @@ class WishlistObj(CRUD):
             session.add(new_wishlist_item)
             await session.commit()
             return True
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
             logger.error(
                 f"Error while creating WishList item (app_user_id={app_user_id}, book_title='{book_title}', "
@@ -36,7 +37,7 @@ class WishlistObj(CRUD):
                 query = select(WishList).where(WishList.app_user_id == app_user_id)
             result = await session.execute(query)
             return result.scalars().all()
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f"Error while retrieving WishList items: {e}")
             return []
 
@@ -51,7 +52,7 @@ class WishlistObj(CRUD):
                 await session.commit()
                 return True
             return False
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
             field_name = field.replace('_', ' ')
             logger.error(
@@ -71,7 +72,7 @@ class WishlistObj(CRUD):
                 await session.commit()
                 return True
             return False
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
             logger.error(f"Error while removing WishList item with id={wish_id}: {e}")
             return False
@@ -82,6 +83,6 @@ class WishlistObj(CRUD):
             result = await session.execute(query)
             wishlist_item = result.scalar_one_or_none()
             return wishlist_item
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f"Error while retrieving WishList item (id={wish_id}): {e}")
             return None

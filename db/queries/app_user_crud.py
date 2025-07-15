@@ -1,6 +1,7 @@
 import logging
 
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import selectinload
 from uuid6 import UUID
 
@@ -23,7 +24,7 @@ class AppUserObj(CRUD):
             session.add(new_user)
             await session.commit()
             return True
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
             logger.error(
                 f"Error while creating AppUser (tg_user_id={tg_user_id}, employee_id={employee_id}, "
@@ -36,7 +37,7 @@ class AppUserObj(CRUD):
             result = await session.execute(select(AppUsers))
             users = result.scalars().all()
             return users
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f"Error while retrieving users: {e}")
             return []
 
@@ -52,7 +53,7 @@ class AppUserObj(CRUD):
             result = await session.execute(query)
             app_user = result.scalar_one_or_none()
             return app_user
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f"Error while retrieving app user (id={app_user_id}): {e}")
             return None
 
@@ -68,25 +69,9 @@ class AppUserObj(CRUD):
             app_user = result.scalar_one_or_none()
 
             return app_user is not None
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f"Error while checking if user is registered (telegram_id={telegram_id}): {e}")
             return False
-
-    # TODO: change function
-    # @staticmethod
-    # async def get_user_id_by_name(session: async_session_factory, name: str, surname: str):
-    #     try:
-    #         result = await session.execute(select(AppUsers).where(User.name == name and User.surname == surname))
-    #         user = result.scalars().first()
-    #
-    #         if user:
-    #             user_id = user.telegram_id
-    #             return int(user_id)
-    #         else:
-    #             return None
-    #     except Exception as e:
-    #         logger.error(f"Error when retrieving user id: {e}")
-    #         return None
 
     @staticmethod
     async def is_admin(session: async_session_factory, app_user_id: UUID) -> bool:
@@ -100,7 +85,7 @@ class AppUserObj(CRUD):
                 return False
 
             return role.name.lower() == 'admin'
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f"Error while checking admin status (app_user_id={app_user_id}): {e}")
             return False
 
@@ -118,7 +103,7 @@ class AppUserObj(CRUD):
             if not app_user:
                 return None
             return app_user.id
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f"Error while getting AppUser id by telegram_id={telegram_id}: {e}")
             return None
 
@@ -141,6 +126,6 @@ class AppUserObj(CRUD):
 
             return app_user.employee.full_name
 
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f"Error while getting employee fullname for AppUser id={app_user_id}: {e}")
             return None

@@ -1,6 +1,7 @@
 import logging
 
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from db.database import async_session_factory
 from db.models import Employees
 from interface import CRUD
@@ -30,6 +31,6 @@ class EmployeeObj(CRUD):
             query = select(Employees).where(Employees.email == email)
             result = await session.execute(query)
             return result.scalar_one_or_none()
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f"Error while retrieving employee by email {email}: {e}")
             return None

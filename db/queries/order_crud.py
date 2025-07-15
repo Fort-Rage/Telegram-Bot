@@ -2,6 +2,7 @@ import logging
 
 from typing import Optional
 from sqlalchemy import select, case
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 
 from db.database import async_session_factory
@@ -26,7 +27,7 @@ class OrderObj(CRUD):
             session.add(new_order)
             await session.commit()
             return True
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
             logger.error(f"Error when adding order: {e}")
             return False
@@ -56,7 +57,7 @@ class OrderObj(CRUD):
             result = await session.execute(query)
             orders = result.scalars().all()
             return orders
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f"Error when retrieving orders: {e}")
             return []
 
@@ -74,7 +75,7 @@ class OrderObj(CRUD):
                 await session.commit()
                 return True
             return False
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
             logger.error(f"Error when removing order: {e}")
             return False
@@ -89,7 +90,7 @@ class OrderObj(CRUD):
             result = await session.execute(query)
             order = result.scalar_one_or_none()
             return order
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f"Error when retrieving order: {e}")
             return None
 
@@ -105,7 +106,7 @@ class OrderObj(CRUD):
                 await session.commit()
                 return True
             return False
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
             logger.error(f"Error when updating status of order: {e}")
             return False
@@ -135,7 +136,7 @@ class OrderObj(CRUD):
                     await session.commit()
                     return True
             return False
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
             logger.error(f"Error when updating status and location of order: {e}")
             return False
@@ -154,7 +155,7 @@ class OrderObj(CRUD):
                 order.status = OrderStatus.IN_PROCESS
                 await session.commit()
                 return True
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
             logger.error(f"Error when checking if order {e}")
             return False

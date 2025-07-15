@@ -76,7 +76,7 @@ class LocationObj(CRUD):
                 return True
             else:
                 return False
-        except Exception as e:
+        except SQLAlchemyError as e:
             await session.rollback()
             logger.error(f"Error while removing location (id={location_id}): {e}")
             return False

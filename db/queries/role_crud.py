@@ -1,6 +1,7 @@
 import logging
 
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from uuid6 import UUID
 
 from db.database import async_session_factory
@@ -28,7 +29,7 @@ class RoleObj(CRUD):
             query = select(Roles).where(Roles.id == role_id)
             result = await session.execute(query)
             return result.scalar_one_or_none()
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f"Error while retrieving role (id={role_id}): {e}")
             return None
 
@@ -38,6 +39,6 @@ class RoleObj(CRUD):
             query = select(Roles).where(Roles.name == name)
             result = await session.execute(query)
             return result.scalar_one_or_none()
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.error(f"Error while retrieving role by name ({name}): {e}")
             return None
