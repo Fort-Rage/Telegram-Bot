@@ -49,7 +49,7 @@ back_to_wishlist_kb = InlineKeyboardMarkup(
 )
 
 
-async def action_wishlist_kb(wishlists: list, action: str) -> InlineKeyboardMarkup:
+def action_wishlist_kb(wishlists: list, action: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
     for wish in wishlists:
@@ -62,7 +62,7 @@ async def action_wishlist_kb(wishlists: list, action: str) -> InlineKeyboardMark
     return builder.adjust(1).as_markup()
 
 
-async def rm_confirm_kb(wish_id: UUID) -> InlineKeyboardMarkup:
+def rm_confirm_kb(wish_id: UUID) -> InlineKeyboardMarkup:
     markup = InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -74,7 +74,7 @@ async def rm_confirm_kb(wish_id: UUID) -> InlineKeyboardMarkup:
     return markup
 
 
-async def back_to_wishlist_upd_kb(wish_id: UUID) -> InlineKeyboardMarkup:
+def back_to_wishlist_upd_kb(wish_id: UUID) -> InlineKeyboardMarkup:
     markup = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="⬅️ Go back", callback_data=f"wishlist_upd_{wish_id}")]

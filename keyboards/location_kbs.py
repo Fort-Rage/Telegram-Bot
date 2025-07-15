@@ -20,7 +20,7 @@ location_menu_kb = InlineKeyboardMarkup(
 )
 
 
-def back_to_loc_menu():
+def back_to_loc_menu() ->InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="⬅️ Back to Menu", callback_data="back_to_loc_menu")],
@@ -28,7 +28,7 @@ def back_to_loc_menu():
     )
 
 
-def locations_kb(result):
+def locations_kb(result) -> ReplyKeyboardMarkup:
     keyboard = ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(
@@ -54,7 +54,7 @@ def show_locations_kb(locations: list) -> InlineKeyboardMarkup:
     return builder.adjust(2).as_markup()
 
 
-def location_confirm():
+def location_confirm() -> InlineKeyboardMarkup:
     confirmation_kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -67,7 +67,7 @@ def location_confirm():
     return confirmation_kb
 
 
-def city_kb(result):
+def city_kb(result) -> ReplyKeyboardMarkup:
     keyboard = ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text=city) for city in result[i:i+2]]for i in range(0, len(result), 2)],
         resize_keyboard=True
@@ -75,7 +75,7 @@ def city_kb(result):
     return keyboard
 
 
-def back_to_loc_or_book():
+def back_to_loc_or_book() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="➕ Add a book", callback_data="add_book")],
