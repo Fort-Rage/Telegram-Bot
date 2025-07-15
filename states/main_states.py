@@ -41,7 +41,6 @@ class Books(StatesGroup):
     waiting_for_confirmation = State()
     location = State()
     owner = State()
-    select_categories = State()
     save_book = State()
     delete_book = State()
 
