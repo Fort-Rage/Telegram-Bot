@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy import select, case
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
+from uuid6 import UUID
 
 from db.database import async_session_factory
 from db.models import Order, OrderStatus, Book
@@ -14,11 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 class OrderObj(CRUD):
-    async def create(self, session: async_session_factory, user_id: int, book_id: int, status=OrderStatus.RESERVED,
-                     taken_from_id: Optional[int] = None, returned_to_id: Optional[int] = None):
+    async def create(self, session: async_session_factory, app_user_id: UUID, book_id: UUID,
+                     taken_from_id: UUID, returned_to_id: Optional[UUID] = None,
+                     status: OrderStatus = OrderStatus.RESERVED) -> bool:
         try:
             new_order = Order(
-                telegram_id=user_id,
+                app_user_id=app_user_id,
                 book_id=book_id,
                 status=status,
                 taken_from_id=taken_from_id,
@@ -29,10 +31,10 @@ class OrderObj(CRUD):
             return True
         except SQLAlchemyError as e:
             await session.rollback()
-            logger.error(f"Error when adding order: {e}")
+            logger.error(f"Error when creating order: {e}")
             return False
 
-    async def read(self, session: async_session_factory, user_id: int):
+    async def read(self, session: async_session_factory, app_user_id: UUID) -> list[Order]:
         try:
             status_order = case(
                 (Order.status == OrderStatus.RESERVED, 0),
@@ -41,22 +43,19 @@ class OrderObj(CRUD):
                 (Order.status == OrderStatus.CANCELLED, 2),
             )
 
-            if await UserObj().is_admin(session=session, telegram_id=user_id):
-                query = select(Order).options(
-                    joinedload(Order.book),
-                    joinedload(Order.taken_from),
-                    joinedload(Order.returned_to),
-                ).order_by(status_order)
-            else:
-                query = select(Order).where(Order.telegram_id == user_id).options(
-                    joinedload(Order.book),
-                    joinedload(Order.taken_from),
-                    joinedload(Order.returned_to),
-                ).order_by(status_order)
+            options = (
+                joinedload(Order.book),
+                joinedload(Order.taken_from),
+                joinedload(Order.returned_to),
+            )
+
+            is_admin = await AppUserObj().is_admin(session=session, app_user_id=app_user_id)
+            query = select(Order).options(*options).order_by(status_order)
+            if not is_admin:
+                query = query.where(Order.app_user_id == app_user_id)
 
             result = await session.execute(query)
-            orders = result.scalars().all()
-            return orders
+            return result.scalars().all()
         except SQLAlchemyError as e:
             logger.error(f"Error when retrieving orders: {e}")
             return []
@@ -64,38 +63,35 @@ class OrderObj(CRUD):
     async def update(self, session: async_session_factory):
         pass
 
-    async def remove(self, session: async_session_factory, order_id: int):
+    async def remove(self, session: async_session_factory, order_id: UUID) -> bool:
         try:
-            query = select(Order).where(Order.order_id == order_id)
-            result = await session.execute(query)
-            order = result.scalar_one_or_none()
+            order = await session.get(Order, order_id)
+            if not order:
+                return False
 
-            if order:
-                await session.delete(order)
-                await session.commit()
-                return True
-            return False
+            await session.delete(order)
+            await session.commit()
+            return True
         except SQLAlchemyError as e:
             await session.rollback()
-            logger.error(f"Error when removing order: {e}")
+            logger.error(f"Error when removing order (id={order_id}): {e}")
             return False
 
-    async def get_obj(self, session: async_session_factory, order_id: int):
+    async def get_obj(self, session: async_session_factory, order_id: UUID) -> Order | None:
         try:
-            query = select(Order).where(Order.order_id == order_id).options(
-                    joinedload(Order.book),
-                    joinedload(Order.taken_from),
-                    joinedload(Order.returned_to),
-                )
+            query = select(Order).where(Order.id == order_id).options(
+                joinedload(Order.book),
+                joinedload(Order.taken_from),
+                joinedload(Order.returned_to),
+            )
             result = await session.execute(query)
-            order = result.scalar_one_or_none()
-            return order
+            return result.scalar_one_or_none()
         except SQLAlchemyError as e:
-            logger.error(f"Error when retrieving order: {e}")
+            logger.error(f"Error when retrieving order (id={order_id}): {e}")
             return None
 
     @staticmethod
-    async def update_status(session: async_session_factory, order_id: int, new_status: str):
+    async def update_status(session: async_session_factory, order_id: UUID, new_status: OrderStatus) -> bool:
         try:
             order = await session.get(Order, order_id)
             if not order:
@@ -106,62 +102,68 @@ class OrderObj(CRUD):
             return True
         except SQLAlchemyError as e:
             await session.rollback()
-            logger.error(f"Error when updating status of order: {e}")
+            logger.error(f"Error when updating status of order (id={order_id}): {e}")
             return False
 
     @staticmethod
-    async def update_status_and_location(
-            session: async_session_factory,
-            order_id: int,
-            new_status: str,
-            location_id: int
-    ):
+    async def update_status_and_location(session: async_session_factory, order_id: UUID, new_status: OrderStatus,
+                                         location_id: UUID) -> bool:
         try:
             order = await session.get(Order, order_id)
             if not order:
+                return False
+
+            book = await session.get(Book, order.book_id)
+            if not book:
                 return False
 
             order.status = new_status
             order.returned_to_id = location_id
-
-            book = await session.get(Book, order.book_id)
-
-            if not book:
-                return False
-
             book.location_id = location_id
+
             await session.commit()
             return True
         except SQLAlchemyError as e:
             await session.rollback()
-            logger.error(f"Error when updating status and location of order: {e}")
+            logger.error(
+                f"Error when updating status and location of order "
+                f"(order_id={order_id}, status={new_status}, location_id={location_id}): {e}"
+            )
             return False
 
     @staticmethod
-    async def is_order_exist(user_id, book_id, session):
+    async def is_order_exist(session: async_session_factory, app_user_id: UUID, book_id: UUID) -> bool:
         try:
             order = await session.scalar(
                 select(Order).where(
-                    Order.telegram_id == user_id,
+                    Order.app_user_id == app_user_id,
                     Order.book_id == book_id,
                     Order.status == OrderStatus.RESERVED
                 )
             )
-            if order:
-                order.status = OrderStatus.IN_PROCESS
-                await session.commit()
-                return True
+            if not order:
+                return False
+
+            order.status = OrderStatus.IN_PROCESS
+            await session.commit()
+            return True
         except SQLAlchemyError as e:
             await session.rollback()
-            logger.error(f"Error when checking if order {e}")
+            logger.error(
+                f"Error when checking if reserved order exists (app_user_id={app_user_id}, book_id={book_id}): {e}"
+            )
             return False
 
     @staticmethod
-    async def is_book_taken(session, book_id):
-        book_taken = await session.scalar(
-            select(Order).where(
-                Order.book_id == book_id,
-                Order.status == OrderStatus.IN_PROCESS
+    async def is_book_taken(session: async_session_factory, book_id: UUID) -> bool:
+        try:
+            order = await session.scalar(
+                select(Order).where(
+                    Order.book_id == book_id,
+                    Order.status == OrderStatus.IN_PROCESS
+                )
             )
-        )
-        return True if book_taken else False
+            return bool(order)
+        except SQLAlchemyError as e:
+            logger.error(f"Error when checking if book is taken (id={book_id}: {e}")
+            return False
