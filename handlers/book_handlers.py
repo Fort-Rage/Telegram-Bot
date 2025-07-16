@@ -181,7 +181,7 @@ async def create_book_handler(callback: CallbackQuery, state: FSMContext):
         )
     else:
         await callback.message.edit_text(
-            '❌ Something went wrong. Please try again later', reply_markup=None
+            '❌ Something went wrong. Please try again later', reply_markup=bk_kb.back_to_books_menu_kb()
         )
 
     await state.clear()
@@ -324,7 +324,7 @@ async def select_book(callback: CallbackQuery, state: FSMContext):
         owner_fullname = await AppUserObj().get_employee_fullname(session=session, app_user_id=app_user_id)
         location = await LocationObj().get_obj(session=session, location_id=book.location_id)
 
-    description = book.description if book.description else '<i>no description</i>'
+    description = book.description or '<i>no description</i>'
     text = (
         f"📚 <b>{book.title}</b>\n"
         f"✍️ <b>Author:</b> {book.author}\n"
@@ -563,7 +563,7 @@ async def book_open(callback: CallbackQuery):
     categories = "\n".join(f"• {cat}" for cat in book_categories)
 
     if book:
-        description = book.description if book.description else '<i>no description</i>'
+        description = book.description or '<i>no description</i>'
         text = (
             f"📚 <b>{book.title}</b>\n"
             f"✍️ <b>Author:</b> {book.author}\n"
