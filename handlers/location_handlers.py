@@ -5,6 +5,7 @@ from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from uuid6 import UUID
 
 from db.database import async_session_factory
+from db.queries.book_crud import BookObj
 from db.queries.location_crud import LocationObj
 from db.queries.app_user_crud import AppUserObj
 from keyboards import location_kbs as loc_kbs
@@ -179,18 +180,9 @@ async def remove_location_confirm(message: Message, state: FSMContext):
 
     await state.update_data(location_id=location_id)
     async with async_session_factory() as session:
-        if await LocationObj().remove(session=session, location_id=location_id):
-            await message.answer(
-                "✅ The location has been successfully deleted!",
-                reply_markup=ReplyKeyboardRemove()
-            )
-            await message.answer(
-                "You can go back to the Locations menu 🔙 ",
-                reply_markup=loc_kbs.back_to_loc_menu()
-            )
-            await state.clear()
+        books = await BookObj().get_books_by_location(session=session, location_id=location_id)
 
-        else:
+        if books:
             await message.answer(
                 "⚠️ This location cannot be deleted while it contains books!",
                 reply_markup=ReplyKeyboardRemove()
@@ -199,6 +191,23 @@ async def remove_location_confirm(message: Message, state: FSMContext):
                 "You can go back to the Locations menu 🔙 ",
                 reply_markup=loc_kbs.back_to_loc_menu()
             )
+        else:
+            success = await LocationObj().remove(session=session, location_id=location_id)
+
+            if success:
+                await message.answer(
+                    "✅ The location has been successfully deleted!",
+                    reply_markup=ReplyKeyboardRemove()
+                )
+                await message.answer(
+                    "You can go back to the Locations menu 🔙 ",
+                    reply_markup=loc_kbs.back_to_loc_menu()
+                )
+                await state.clear()
+            else:
+                await message.answer(f"❌ Oops! Failed to delete the location\n\n"
+                                     f"🔄 <i>Please try again later</i>",
+                                     reply_markup=loc_kbs.back_to_loc_menu(), parse_mode='HTML')
 
 
 @router.callback_query(F.data == 'qrcode_location')
