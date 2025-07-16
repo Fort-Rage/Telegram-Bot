@@ -2,6 +2,8 @@ from aiogram import Router
 from aiogram.filters import CommandStart, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
+from uuid6 import UUID
+
 from db.database import async_session_factory
 from db.models import OrderStatus
 from db.queries.book_crud import BookObj
@@ -24,45 +26,48 @@ async def cmd_start(message: Message, command: CommandObject, state: FSMContext)
     async with async_session_factory() as session:
         is_user_registered = await AppUserObj().is_user_registered(session=session, telegram_id=str(telegram_id))
 
-    if not is_user_registered:
-        await message.answer(
-            "Welcome! 👋 To get started, please enter your email address. We'll use it to verify your identity."
-        )
-        await state.set_state(Reg.email)
-        return
-
-    if args:
-        if args.startswith("location_"):
-            location_id = int(args.split("_")[1])
-            orders = await OrderObj().read(session=session, user_id=telegram_id)
-
-            await message.answer("↩️ Choose a book to return:",
-                                 reply_markup=await order_kbs.return_order_kb(orders, location_id))
+        if not is_user_registered:
+            await message.answer(
+                "Welcome! 👋 To get started, please enter your email address. We'll use it to verify your identity."
+            )
+            await state.set_state(Reg.email)
             return
 
-        elif args.startswith("book_"):
-            book_id = int(args.split("_")[1])
+        app_user_id = await AppUserObj().get_app_user_id(session=session, telegram_id=str(telegram_id))
 
-            order = await OrderObj.is_order_exist(session=session, user_id=telegram_id, book_id=book_id)
+        if args:
+            if args.startswith("location_"):
+                location_id = UUID(args.split("_")[1])
+                orders = await OrderObj().read(session=session, app_user_id=app_user_id)
 
-            if order:
-                await message.answer("✅ Reservation confirmed! Feel free to pick up your book 📚")
-            else:
-                is_taken = await OrderObj.is_book_taken(session=session, book_id=book_id)
-                if is_taken:
-                    await message.answer("❌Unfortunately, this book has been taken already!")
+                await state.update_data(location_id=location_id)
+                await message.answer("↩️ Choose a book to return:",
+                                     reply_markup=await order_kbs.return_order_kb(orders))
+                return
+
+            elif args.startswith("book_"):
+                book_id = UUID(args.split("_")[1])
+
+                is_order = await OrderObj.is_order_exist(session=session, app_user_id=app_user_id, book_id=book_id)
+
+                if is_order:
+                    await message.answer("✅ Reservation confirmed! Feel free to pick up your book 📚")
                 else:
-                    book_loc = await BookObj().get_obj(session=session, book_id=book_id)
-                    new_order = await OrderObj().create(
-                        session=session,
-                        user_id=telegram_id,
-                        book_id=book_id,
-                        status=OrderStatus.IN_PROCESS,
-                        taken_from_id=book_loc.location_id,
-                    )
-                    if new_order:
-                        await message.answer("📚 Your reservation is ready! You can pick up your book.")
-            return
+                    is_taken = await OrderObj.is_book_taken(session=session, book_id=book_id)
+                    if is_taken:
+                        await message.answer("❌Unfortunately, this book has been taken already!")
+                    else:
+                        book_loc = await BookObj().get_obj(session=session, book_id=book_id)
+                        new_order = await OrderObj().create(
+                            session=session,
+                            app_user_id=app_user_id,
+                            book_id=book_id,
+                            status=OrderStatus.IN_PROCESS,
+                            taken_from_id=book_loc.location_id,
+                        )
+                        if new_order:
+                            await message.answer("📚 You have successfully taken the book. Enjoy your reading!")
+                return
 
     await message.answer(
         "You are already registered. Feel free to take advantage of all the features! 🚀"
