@@ -187,3 +187,14 @@ class BookObj(CRUD):
         except SQLAlchemyError as e:
             logger.error(f"Error while retrieving QR code for Book (id={book_id}): {e}")
             return None
+
+    @staticmethod
+    async def get_books_by_location(session: async_session_factory, location_id: UUID) -> list[Book]:
+        try:
+            result = await session.execute(
+                select(Book).where(Book.location_id == location_id)
+            )
+            return result.scalars().all()
+        except SQLAlchemyError as e:
+            logger.error(f"Error when retrieving books by location (id={location_id}): {e}")
+            return []
