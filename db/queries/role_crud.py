@@ -26,6 +26,9 @@ class RoleObj(CRUD):
 
     async def get_obj(self, session: async_session_factory, role_id: UUID) -> Roles | None:
         try:
+            if not role_id:
+                return None
+
             role = await session.get(Roles, role_id)
             return role
         except SQLAlchemyError as e:
@@ -35,6 +38,9 @@ class RoleObj(CRUD):
     @staticmethod
     async def get_obj_by_name(session: async_session_factory, name: str) -> Roles | None:
         try:
+            if not name:
+                return None
+
             query = select(Roles).where(Roles.name == name)
             result = await session.execute(query)
             return result.scalar_one_or_none()
