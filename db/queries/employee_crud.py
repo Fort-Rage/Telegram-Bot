@@ -28,6 +28,9 @@ class EmployeeObj(CRUD):
     @staticmethod
     async def get_obj_by_email(session: async_session_factory, email: str) -> Employees | None:
         try:
+            if not email:
+                return None
+
             query = select(Employees).where(Employees.email == email)
             result = await session.execute(query)
             return result.scalar_one_or_none()
