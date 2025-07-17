@@ -28,10 +28,10 @@ async def test_tg_user_create(db_session, mocker):
     tg_user_3 = await TgUserObj().create(session=db_session, telegram_id="00000", username="user_c")
 
     result = await db_session.execute(select(TelegramUsers).order_by(TelegramUsers.id))
-    users = result.scalars().all()
-    tg_user_1, tg_user_2 = users[0], users[1]
+    tg_users = result.scalars().all()
+    tg_user_1, tg_user_2 = tg_users[0], tg_users[1]
 
-    assert len(users) == 3
+    assert len(tg_users) == 3
     assert tg_user_1.telegram_id == "12345" and tg_user_1.username == "user_a"
     assert tg_user_2.telegram_id == "54321" and tg_user_2.username == "user_b"
     assert tg_user_3 is True
