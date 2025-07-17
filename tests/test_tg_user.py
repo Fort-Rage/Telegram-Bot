@@ -3,7 +3,7 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from db.models import TelegramUsers
-from db.queries.app_user_crud import TgUserObj
+from db.queries.tg_user_crud import TgUserObj
 
 
 @pytest.mark.asyncio
