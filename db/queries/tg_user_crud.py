@@ -12,6 +12,9 @@ logger = logging.getLogger(__name__)
 class TgUserObj(CRUD):
     async def create(self, session: async_session_factory, telegram_id: str, username: str) -> bool:
         try:
+            if not telegram_id or not username:
+                return False
+
             new_tg_user = TelegramUsers(telegram_id=telegram_id, username=username)
             session.add(new_tg_user)
             await session.commit()
@@ -36,6 +39,9 @@ class TgUserObj(CRUD):
     @staticmethod
     async def get_obj_by_telegram_id(session: async_session_factory, telegram_id: str) -> TelegramUsers | None:
         try:
+            if not telegram_id:
+                return None
+
             query = select(TelegramUsers).where(TelegramUsers.telegram_id == telegram_id)
             result = await session.execute(query)
             return result.scalar_one_or_none()
