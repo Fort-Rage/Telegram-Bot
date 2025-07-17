@@ -69,8 +69,8 @@ async def test_tg_user_get_obj_by_telegram_id(db_session, sample_tg_users, mocke
     invalid_tg_user_1 = await TgUserObj().get_obj_by_telegram_id(session=db_session, telegram_id=12345)
     assert invalid_tg_user_1 is None
 
-    invalid_tg_user_1 = await TgUserObj().get_obj_by_telegram_id(session=db_session, telegram_id="")
-    assert invalid_tg_user_1 is None
+    invalid_tg_user_2 = await TgUserObj().get_obj_by_telegram_id(session=db_session, telegram_id="")
+    assert invalid_tg_user_2 is None
 
     mocker.patch.object(db_session, 'execute', side_effect=SQLAlchemyError("DB error"))
     db_error_tg_user = await TgUserObj().get_obj_by_telegram_id(session=db_session, telegram_id="12345")

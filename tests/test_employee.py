@@ -35,8 +35,8 @@ async def test_employee_get_obj_by_email(db_session, sample_employees, mocker):
     invalid_employee_1 = await EmployeeObj().get_obj_by_email(session=db_session, email=12345)
     assert invalid_employee_1 is None
 
-    invalid_employee_1 = await EmployeeObj().get_obj_by_email(session=db_session, email="")
-    assert invalid_employee_1 is None
+    invalid_employee_2 = await EmployeeObj().get_obj_by_email(session=db_session, email="")
+    assert invalid_employee_2 is None
 
     mocker.patch.object(db_session, 'execute', side_effect=SQLAlchemyError("DB error"))
     db_error_employee = await EmployeeObj().get_obj_by_email(session=db_session, email="admin@example.com")
