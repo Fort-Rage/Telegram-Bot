@@ -79,3 +79,27 @@ async def test_role_get_obj_by_name(db_session, sample_roles, mocker):
     mocker.patch.object(db_session, 'execute', side_effect=SQLAlchemyError("DB error"))
     db_error_role = await RoleObj().get_obj_by_name(session=db_session, name="Admin")
     assert db_error_role is None
+
+
+@pytest.mark.asyncio
+async def test_role_create():
+    role = await RoleObj().create()
+    assert role is None
+
+
+@pytest.mark.asyncio
+async def test_role_read():
+    role = await RoleObj().read()
+    assert role is None
+
+
+@pytest.mark.asyncio
+async def test_role_update():
+    role = await RoleObj().update()
+    assert role is None
+
+
+@pytest.mark.asyncio
+async def test_role_remove():
+    role = await RoleObj().remove()
+    assert role is None

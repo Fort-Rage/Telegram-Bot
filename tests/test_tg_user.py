@@ -86,3 +86,27 @@ async def test_tg_user_get_obj_by_telegram_id(db_session, sample_tg_users, mocke
     mocker.patch.object(db_session, 'execute', side_effect=SQLAlchemyError("DB error"))
     db_error_tg_user = await TgUserObj().get_obj_by_telegram_id(session=db_session, telegram_id="12345")
     assert db_error_tg_user is None
+
+
+@pytest.mark.asyncio
+async def test_tg_user_read():
+    tg_user = await TgUserObj().read()
+    assert tg_user is None
+
+
+@pytest.mark.asyncio
+async def test_app_user_update():
+    tg_user = await TgUserObj().update()
+    assert tg_user is None
+
+
+@pytest.mark.asyncio
+async def test_app_user_remove():
+    tg_user = await TgUserObj().remove()
+    assert tg_user is None
+
+
+@pytest.mark.asyncio
+async def test_app_user_get_obj():
+    tg_user = await TgUserObj().get_obj()
+    assert tg_user is None

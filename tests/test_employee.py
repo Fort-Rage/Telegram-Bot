@@ -46,3 +46,33 @@ async def test_employee_get_obj_by_email(db_session, sample_employees, mocker):
     mocker.patch.object(db_session, 'execute', side_effect=SQLAlchemyError("DB error"))
     db_error_employee = await EmployeeObj().get_obj_by_email(session=db_session, email="admin@example.com")
     assert db_error_employee is None
+
+
+@pytest.mark.asyncio
+async def test_employee_create():
+    employee = await EmployeeObj().create()
+    assert employee is None
+
+
+@pytest.mark.asyncio
+async def test_employee_read():
+    employee = await EmployeeObj().read()
+    assert employee is None
+
+
+@pytest.mark.asyncio
+async def test_employee_update():
+    employee = await EmployeeObj().update()
+    assert employee is None
+
+
+@pytest.mark.asyncio
+async def test_employee_remove():
+    employee = await EmployeeObj().remove()
+    assert employee is None
+
+
+@pytest.mark.asyncio
+async def test_employee_get_obj():
+    employee = await EmployeeObj().get_obj()
+    assert employee is None
