@@ -8,9 +8,6 @@ from db.models import AppUsers, TelegramUsers, Employees, Roles
 from db.queries.app_user_crud import AppUserObj
 
 
-# TODO: 8 tests
-
-
 @pytest.mark.asyncio
 async def test_app_user_model(db_session, sample_app_users):
     result = await db_session.execute(select(AppUsers))
