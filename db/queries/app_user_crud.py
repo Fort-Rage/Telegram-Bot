@@ -18,8 +18,12 @@ class AppUserObj(CRUD):
     async def create(self, session: async_session_factory, telegram_id: str, tg_user_id: UUID, employee_id: UUID,
                      role_id: UUID) -> bool:
         try:
-            if await self.is_user_registered(session=session, telegram_id=telegram_id):
+            if not telegram_id or await self.is_registered(session=session, telegram_id=telegram_id):
                 return False
+
+            if not tg_user_id or not employee_id or not role_id:
+                return False
+
             new_user = AppUsers(tg_user_id=tg_user_id, employee_id=employee_id, role_id=role_id)
             session.add(new_user)
             await session.commit()
@@ -49,6 +53,9 @@ class AppUserObj(CRUD):
 
     async def get_obj(self, session: async_session_factory, app_user_id: UUID) -> AppUsers | None:
         try:
+            if not app_user_id:
+                return None
+
             app_user = await session.get(AppUsers, app_user_id)
             return app_user
         except SQLAlchemyError as e:
@@ -56,8 +63,11 @@ class AppUserObj(CRUD):
             return None
 
     @staticmethod
-    async def is_user_registered(session: async_session_factory, telegram_id: str) -> bool:
+    async def is_registered(session: async_session_factory, telegram_id: str) -> bool:
         try:
+            if not telegram_id:
+                return False
+
             tg_user = await TgUserObj().get_obj_by_telegram_id(session=session, telegram_id=telegram_id)
             if not tg_user:
                 return False
@@ -74,6 +84,9 @@ class AppUserObj(CRUD):
     @staticmethod
     async def is_admin(session: async_session_factory, app_user_id: UUID) -> bool:
         try:
+            if not app_user_id:
+                return False
+
             app_user = await AppUserObj().get_obj(session=session, app_user_id=app_user_id)
             if not app_user:
                 return False
@@ -90,6 +103,9 @@ class AppUserObj(CRUD):
     @staticmethod
     async def get_app_user_id(session: async_session_factory, telegram_id: str) -> UUID | None:
         try:
+            if not telegram_id:
+                return None
+
             tg_user = await TgUserObj().get_obj_by_telegram_id(session=session, telegram_id=telegram_id)
             if not tg_user:
                 return None
@@ -108,6 +124,9 @@ class AppUserObj(CRUD):
     @staticmethod
     async def get_employee_fullname(session: async_session_factory, app_user_id: UUID) -> str | None:
         try:
+            if not app_user_id:
+                return None
+
             query = (
                 select(AppUsers)
                 .options(selectinload(AppUsers.employee))
