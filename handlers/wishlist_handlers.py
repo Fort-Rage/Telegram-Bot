@@ -22,10 +22,10 @@ async def wishlist_handler(message: Message):
     async with async_session_factory() as session:
         app_user_id = await AppUserObj().get_app_user_id(session=session, telegram_id=str(telegram_id))
         wishlist_items = await WishlistObj().read(session=session, app_user_id=app_user_id)
-        is_user_registered = await AppUserObj().is_user_registered(session=session, telegram_id=str(telegram_id))
+        is_registered = await AppUserObj().is_registered(session=session, telegram_id=str(telegram_id))
         is_admin = await AppUserObj().is_admin(session=session, app_user_id=app_user_id)
 
-        if is_user_registered:
+        if is_registered:
             if is_admin:
                 message_text = "⭐ List of all wishlists:\n\n" if wishlist_items else ("📭 The wishlist is "
                                                                                       "currently empty!")

@@ -24,9 +24,9 @@ async def cmd_start(message: Message, command: CommandObject, state: FSMContext)
     telegram_id = message.from_user.id
 
     async with async_session_factory() as session:
-        is_user_registered = await AppUserObj().is_user_registered(session=session, telegram_id=str(telegram_id))
+        is_registered = await AppUserObj().is_registered(session=session, telegram_id=str(telegram_id))
 
-        if not is_user_registered:
+        if not is_registered:
             await message.answer(
                 "Welcome! 👋 To get started, please enter your email address. We'll use it to verify your identity."
             )
