@@ -286,11 +286,11 @@ async def test_app_user_get_employee_fullname(db_session, sample_app_users, mock
 
 @pytest.mark.asyncio
 async def test_app_user_update():
-    user = await AppUserObj().update()
-    assert user is None
+    app_user = await AppUserObj().update()
+    assert app_user is None
 
 
 @pytest.mark.asyncio
 async def test_app_user_remove():
-    user = await AppUserObj().remove()
-    assert user is None
+    app_user = await AppUserObj().remove()
+    assert app_user is None
