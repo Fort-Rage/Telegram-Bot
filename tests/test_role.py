@@ -10,7 +10,7 @@ from db.queries.role_crud import RoleObj
 
 @pytest.mark.asyncio
 async def test_role_model(db_session, sample_roles):
-    result = await db_session.execute(select(Roles))
+    result = await db_session.execute(select(Roles).order_by(Roles.id))
     roles = result.scalars().all()
 
     role_1 = await db_session.get(Roles, roles[0].id)
@@ -25,7 +25,7 @@ async def test_role_model(db_session, sample_roles):
 
 @pytest.mark.asyncio
 async def test_role_get_obj(db_session, sample_roles, mocker):
-    result = await db_session.execute(select(Roles))
+    result = await db_session.execute(select(Roles).order_by(Roles.id))
     roles = result.scalars().all()
 
     role_1 = await RoleObj().get_obj(session=db_session, role_id=roles[0].id)
@@ -53,7 +53,7 @@ async def test_role_get_obj(db_session, sample_roles, mocker):
 
 @pytest.mark.asyncio
 async def test_role_get_obj_by_name(db_session, sample_roles, mocker):
-    result = await db_session.execute(select(Roles))
+    result = await db_session.execute(select(Roles).order_by(Roles.id))
     roles = result.scalars().all()
 
     role_1 = await RoleObj().get_obj_by_name(session=db_session, name="User")

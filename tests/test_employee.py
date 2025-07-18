@@ -8,7 +8,7 @@ from db.queries.employee_crud import EmployeeObj
 
 @pytest.mark.asyncio
 async def test_employee_model(db_session, sample_employees):
-    result = await db_session.execute(select(Employees))
+    result = await db_session.execute(select(Employees).order_by(Employees.id))
     employees = result.scalars().all()
 
     employee_1 = await db_session.get(Employees, employees[0].id)

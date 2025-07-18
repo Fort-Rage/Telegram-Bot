@@ -10,7 +10,7 @@ from db.queries.app_user_crud import AppUserObj
 
 @pytest.mark.asyncio
 async def test_app_user_model(db_session, sample_app_users):
-    result = await db_session.execute(select(AppUsers))
+    result = await db_session.execute(select(AppUsers).order_by(AppUsers.id))
     app_users = result.scalars().all()
 
     app_users_1 = await db_session.get(AppUsers, app_users[0].id)
@@ -29,11 +29,11 @@ async def test_app_user_model(db_session, sample_app_users):
 
 @pytest.mark.asyncio
 async def test_app_user_create(db_session, sample_tg_users, sample_employees, sample_roles):
-    result = await db_session.execute(select(TelegramUsers))
+    result = await db_session.execute(select(TelegramUsers).order_by(TelegramUsers.id))
     tg_users = result.scalars().all()
-    result = await db_session.execute(select(Employees))
+    result = await db_session.execute(select(Employees).order_by(Employees.id))
     employees = result.scalars().all()
-    result = await db_session.execute(select(Roles))
+    result = await db_session.execute(select(Roles).order_by(Roles.id))
     roles = result.scalars().all()
 
     tg_user_1_tg_id, tg_user_1_id, employee_1_id, role_1_id = (tg_users[0].telegram_id, tg_users[0].id,
@@ -68,12 +68,12 @@ async def test_app_user_create(db_session, sample_tg_users, sample_employees, sa
 
 
 @pytest.mark.asyncio
-async def test_app_user_create_invalid(db_session, sample_tg_users, sample_employees, sample_roles):
-    result = await db_session.execute(select(TelegramUsers))
+async def test_app_user_create_invalid(db_session, sample_tg_users, sample_employees, sample_roles, mocker):
+    result = await db_session.execute(select(TelegramUsers).order_by(TelegramUsers.id))
     tg_users = result.scalars().all()
-    result = await db_session.execute(select(Employees))
+    result = await db_session.execute(select(Employees).order_by(Employees.id))
     employees = result.scalars().all()
-    result = await db_session.execute(select(Roles))
+    result = await db_session.execute(select(Roles).order_by(Roles.id))
     roles = result.scalars().all()
 
     telegram_id, tg_user_id, employee_id, role_id = (tg_users[0].telegram_id, tg_users[0].id,
@@ -111,17 +111,22 @@ async def test_app_user_create_invalid(db_session, sample_tg_users, sample_emplo
                                                    tg_user_id=tg_user_id, employee_id=employee_id, role_id="")
     assert invalid_app_user_4 is False
 
+    mocker.patch.object(db_session, 'add', side_effect=SQLAlchemyError("DB error"))
+    db_error_app_user = await AppUserObj().create(session=db_session, telegram_id=telegram_id,
+                                                  tg_user_id=tg_user_id, employee_id=employee_id, role_id=role_id)
+    assert db_error_app_user is False
+
 
 @pytest.mark.asyncio
 async def test_app_user_read(db_session, sample_app_users, mocker):
     app_users = await AppUserObj().read(session=db_session)
     app_user_1, app_user_2 = app_users[0], app_users[1]
 
-    result = await db_session.execute(select(TelegramUsers))
+    result = await db_session.execute(select(TelegramUsers).order_by(TelegramUsers.id))
     tg_users = result.scalars().all()
-    result = await db_session.execute(select(Employees))
+    result = await db_session.execute(select(Employees).order_by(Employees.id))
     employees = result.scalars().all()
-    result = await db_session.execute(select(Roles))
+    result = await db_session.execute(select(Roles).order_by(Roles.id))
     roles = result.scalars().all()
 
     assert len(app_users) == 2
@@ -134,18 +139,17 @@ async def test_app_user_read(db_session, sample_app_users, mocker):
     mocker.patch.object(db_session, 'execute', side_effect=SQLAlchemyError("DB error"))
     db_error_app_users = await AppUserObj().read(session=db_session)
     assert len(db_error_app_users) == 0
-    assert db_error_app_users == []
 
 
 @pytest.mark.asyncio
 async def test_app_user_get_obj(db_session, sample_app_users, mocker):
-    result = await db_session.execute(select(AppUsers))
+    result = await db_session.execute(select(AppUsers).order_by(AppUsers.id))
     app_users = result.scalars().all()
-    result = await db_session.execute(select(TelegramUsers))
+    result = await db_session.execute(select(TelegramUsers).order_by(TelegramUsers.id))
     tg_users = result.scalars().all()
-    result = await db_session.execute(select(Employees))
+    result = await db_session.execute(select(Employees).order_by(Employees.id))
     employees = result.scalars().all()
-    result = await db_session.execute(select(Roles))
+    result = await db_session.execute(select(Roles).order_by(Roles.id))
     roles = result.scalars().all()
 
     app_user_1 = await AppUserObj().get_obj(session=db_session, app_user_id=app_users[0].id)
@@ -172,7 +176,7 @@ async def test_app_user_get_obj(db_session, sample_app_users, mocker):
 
 @pytest.mark.asyncio
 async def test_app_user_is_registered(db_session, sample_app_users, mocker):
-    result = await db_session.execute(select(TelegramUsers))
+    result = await db_session.execute(select(TelegramUsers).order_by(TelegramUsers.id))
     tg_users = result.scalars().all()
 
     app_user_1 = await AppUserObj().is_registered(session=db_session, telegram_id=tg_users[0].telegram_id)
@@ -199,7 +203,7 @@ async def test_app_user_is_registered(db_session, sample_app_users, mocker):
 
 @pytest.mark.asyncio
 async def test_app_user_is_admin(db_session, sample_app_users, mocker):
-    result = await db_session.execute(select(AppUsers))
+    result = await db_session.execute(select(AppUsers).order_by(AppUsers.id))
     app_users = result.scalars().all()
 
     app_user_1 = await AppUserObj().is_admin(session=db_session, app_user_id=app_users[0].id)
@@ -225,9 +229,9 @@ async def test_app_user_is_admin(db_session, sample_app_users, mocker):
 
 @pytest.mark.asyncio
 async def test_app_user_get_app_user_id(db_session, sample_app_users, mocker):
-    result = await db_session.execute(select(AppUsers))
+    result = await db_session.execute(select(AppUsers).order_by(AppUsers.id))
     app_users = result.scalars().all()
-    result = await db_session.execute(select(TelegramUsers))
+    result = await db_session.execute(select(TelegramUsers).order_by(TelegramUsers.id))
     tg_users = result.scalars().all()
 
     app_user_1 = await AppUserObj().get_app_user_id(session=db_session, telegram_id=tg_users[0].telegram_id)
@@ -255,9 +259,9 @@ async def test_app_user_get_app_user_id(db_session, sample_app_users, mocker):
 
 @pytest.mark.asyncio
 async def test_app_user_get_employee_fullname(db_session, sample_app_users, mocker):
-    result = await db_session.execute(select(AppUsers))
+    result = await db_session.execute(select(AppUsers).order_by(AppUsers.id))
     app_users = result.scalars().all()
-    result = await db_session.execute(select(Employees))
+    result = await db_session.execute(select(Employees).order_by(Employees.id))
     employees = result.scalars().all()
 
     app_user_1 = await AppUserObj().get_employee_fullname(session=db_session, app_user_id=app_users[0].id)

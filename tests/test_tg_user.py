@@ -8,7 +8,7 @@ from db.queries.tg_user_crud import TgUserObj
 
 @pytest.mark.asyncio
 async def test_tg_user_model(db_session, sample_tg_users):
-    result = await db_session.execute(select(TelegramUsers))
+    result = await db_session.execute(select(TelegramUsers).order_by(TelegramUsers.id))
     tg_users = result.scalars().all()
 
     tg_user = await db_session.get(TelegramUsers, tg_users[0].id)
