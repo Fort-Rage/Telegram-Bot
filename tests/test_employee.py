@@ -27,9 +27,11 @@ async def test_employee_model(db_session, sample_employees):
 async def test_employee_get_obj_by_email(db_session, sample_employees, mocker):
     employee_1 = await EmployeeObj().get_obj_by_email(session=db_session, email="user_a@example.com")
     employee_2 = await EmployeeObj().get_obj_by_email(session=db_session, email="admin@example.com")
+    employee_3 = await EmployeeObj().get_obj_by_email(session=db_session, email="librarian@example.com")
 
     assert employee_1.full_name == "User A"
     assert employee_2.full_name == "Admin"
+    assert employee_3 is None
 
     # Invalid data
     invalid_employee_1 = await EmployeeObj().get_obj_by_email(session=db_session, email=None)

@@ -67,9 +67,11 @@ async def test_tg_user_create(db_session, mocker):
 async def test_tg_user_get_obj_by_telegram_id(db_session, sample_tg_users, mocker):
     tg_user_1 = await TgUserObj().get_obj_by_telegram_id(session=db_session, telegram_id="12345")
     tg_user_2 = await TgUserObj().get_obj_by_telegram_id(session=db_session, telegram_id="54321")
+    tg_user_3 = await TgUserObj().get_obj_by_telegram_id(session=db_session, telegram_id="11111")
 
     assert tg_user_1.telegram_id == "12345" and tg_user_1.username == "user_a"
     assert tg_user_2.telegram_id == "54321" and tg_user_2.username == "admin_user"
+    assert tg_user_3 is None
 
     # Invalid data
     invalid_tg_user_1 = await TgUserObj().get_obj_by_telegram_id(session=db_session, telegram_id=None)
