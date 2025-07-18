@@ -33,11 +33,14 @@ async def test_role_get_obj(db_session, sample_roles, mocker):
     assert role_2.name == "Admin"
 
     # Invalid data
-    invalid_role_1 = await RoleObj().get_obj(session=db_session, role_id=12345)
+    invalid_role_1 = await RoleObj().get_obj(session=db_session, role_id=None)
     assert invalid_role_1 is None
 
     invalid_role_2 = await RoleObj().get_obj(session=db_session, role_id="")
     assert invalid_role_2 is None
+
+    invalid_role_3 = await RoleObj().get_obj(session=db_session, role_id=12345)
+    assert invalid_role_3 is None
 
     mocker.patch.object(db_session, 'get', side_effect=SQLAlchemyError("DB error"))
     db_error_role = await RoleObj().get_obj(session=db_session, role_id=roles[0].id)
@@ -58,11 +61,14 @@ async def test_role_get_obj_by_name(db_session, sample_roles, mocker):
     assert role_2.description == "Administrator role"
 
     # Invalid data
-    invalid_role_1 = await RoleObj().get_obj_by_name(session=db_session, name=12345)
+    invalid_role_1 = await RoleObj().get_obj_by_name(session=db_session, name=None)
     assert invalid_role_1 is None
 
     invalid_role_2 = await RoleObj().get_obj_by_name(session=db_session, name="")
     assert invalid_role_2 is None
+
+    invalid_role_3 = await RoleObj().get_obj_by_name(session=db_session, name=12345)
+    assert invalid_role_3 is None
 
     mocker.patch.object(db_session, 'execute', side_effect=SQLAlchemyError("DB error"))
     db_error_role = await RoleObj().get_obj_by_name(session=db_session, name="Admin")

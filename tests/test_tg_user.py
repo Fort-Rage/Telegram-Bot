@@ -37,20 +37,26 @@ async def test_tg_user_create(db_session, mocker):
     assert tg_user_3 is True
 
     # Invalid data
-    invalid_tg_user_1 = await TgUserObj().create(session=db_session, telegram_id="99999", username=None)
+    invalid_tg_user_1 = await TgUserObj().create(session=db_session, telegram_id="11111", username=None)
     assert invalid_tg_user_1 is False
 
     invalid_tg_user_2 = await TgUserObj().create(session=db_session, telegram_id=None, username="valid_username")
     assert invalid_tg_user_2 is False
 
-    invalid_tg_user_3 = await TgUserObj().create(session=db_session, telegram_id="12345", username="user_a")
+    invalid_tg_user_3 = await TgUserObj().create(session=db_session, telegram_id="", username="valid_username")
     assert invalid_tg_user_3 is False
 
-    invalid_tg_user_4 = await TgUserObj().create(session=db_session, telegram_id="", username="valid_username")
+    invalid_tg_user_4 = await TgUserObj().create(session=db_session, telegram_id="11111", username="")
     assert invalid_tg_user_4 is False
 
-    invalid_tg_user_5 = await TgUserObj().create(session=db_session, telegram_id="11111", username="")
+    invalid_tg_user_5 = await TgUserObj().create(session=db_session, telegram_id=12345, username="valid_username")
     assert invalid_tg_user_5 is False
+
+    invalid_tg_user_6 = await TgUserObj().create(session=db_session, telegram_id="11111", username=12345)
+    assert invalid_tg_user_6 is False
+
+    invalid_tg_user_7 = await TgUserObj().create(session=db_session, telegram_id="12345", username="user_a")
+    assert invalid_tg_user_7 is False
 
     mocker.patch.object(db_session, 'add', side_effect=SQLAlchemyError("DB error"))
     db_error_tg_user = await TgUserObj().create(session=db_session, telegram_id="123456", username="db_error_user")
@@ -66,11 +72,14 @@ async def test_tg_user_get_obj_by_telegram_id(db_session, sample_tg_users, mocke
     assert tg_user_2.telegram_id == "54321" and tg_user_2.username == "admin_user"
 
     # Invalid data
-    invalid_tg_user_1 = await TgUserObj().get_obj_by_telegram_id(session=db_session, telegram_id=12345)
+    invalid_tg_user_1 = await TgUserObj().get_obj_by_telegram_id(session=db_session, telegram_id=None)
     assert invalid_tg_user_1 is None
 
     invalid_tg_user_2 = await TgUserObj().get_obj_by_telegram_id(session=db_session, telegram_id="")
     assert invalid_tg_user_2 is None
+
+    invalid_tg_user_3 = await TgUserObj().get_obj_by_telegram_id(session=db_session, telegram_id=12345)
+    assert invalid_tg_user_3 is None
 
     mocker.patch.object(db_session, 'execute', side_effect=SQLAlchemyError("DB error"))
     db_error_tg_user = await TgUserObj().get_obj_by_telegram_id(session=db_session, telegram_id="12345")
