@@ -223,7 +223,6 @@ async def test_app_user_is_admin(db_session, sample_app_users, mocker):
 
     mocker.patch.object(db_session, 'get', side_effect=SQLAlchemyError("DB error"))
     db_error_app_user = await AppUserObj().is_admin(session=db_session, app_user_id=app_users[0].id)
-
     assert db_error_app_user is False
 
 
@@ -281,7 +280,6 @@ async def test_app_user_get_employee_fullname(db_session, sample_app_users, mock
 
     mocker.patch.object(db_session, 'execute', side_effect=SQLAlchemyError("DB error"))
     db_error_app_user = await AppUserObj().get_employee_fullname(session=db_session, app_user_id=app_users[0].id)
-
     assert db_error_app_user is None
 
 
