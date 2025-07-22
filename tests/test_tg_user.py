@@ -93,18 +93,18 @@ async def test_tg_user_read():
 
 
 @pytest.mark.asyncio
-async def test_app_user_update():
+async def test_tg_user_update():
     tg_user = await TgUserObj().update()
     assert tg_user is None
 
 
 @pytest.mark.asyncio
-async def test_app_user_remove():
+async def test_tg_user_remove():
     tg_user = await TgUserObj().remove()
     assert tg_user is None
 
 
 @pytest.mark.asyncio
-async def test_app_user_get_obj():
+async def test_tg_user_get_obj():
     tg_user = await TgUserObj().get_obj()
     assert tg_user is None
