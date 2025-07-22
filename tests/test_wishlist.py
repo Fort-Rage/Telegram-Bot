@@ -42,7 +42,6 @@ async def test_wishlist_create(db_session, sample_app_users):
 
     result = await db_session.execute(select(WishList).order_by(WishList.id))
     wishlists = result.scalars().all()
-    print(wishlists)
     wishlist_1 = wishlists[0]
 
     assert len(wishlists) == 3
