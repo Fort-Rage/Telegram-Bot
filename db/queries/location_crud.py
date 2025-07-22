@@ -1,7 +1,6 @@
 import logging
 import os
 
-from io import BytesIO
 from aiogram.types import BufferedInputFile
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
@@ -21,6 +20,9 @@ logger = logging.getLogger(__name__)
 class LocationObj(CRUD):
     async def create(self, session: async_session_factory, city: str, room: str) -> bool:
         try:
+            if not city or not room:
+                return False
+
             try:
                 city_enum = City(city)
             except ValueError:
@@ -54,6 +56,9 @@ class LocationObj(CRUD):
 
     async def update(self, session: async_session_factory, location_id: UUID, city: str, room: str) -> bool:
         try:
+            if not location_id or not city or not room:
+                return False
+
             location = await session.get(Location, location_id)
             if not location:
                 return False
@@ -69,6 +74,9 @@ class LocationObj(CRUD):
 
     async def remove(self, session: async_session_factory, location_id: UUID) -> bool:
         try:
+            if not location_id:
+                return False
+
             location = await session.get(Location, location_id)
             if not location:
                 return False
@@ -83,6 +91,9 @@ class LocationObj(CRUD):
 
     async def get_obj(self, session: async_session_factory, location_id: UUID) -> Location | None:
         try:
+            if not location_id:
+                return None
+
             location = await session.get(Location, location_id)
             return location
         except SQLAlchemyError as e:
@@ -92,6 +103,9 @@ class LocationObj(CRUD):
     @staticmethod
     async def get_location_id(session: async_session_factory, city: str, room: str) -> UUID | None:
         try:
+            if not city or not room:
+                return None
+
             result = await session.execute(
                 select(Location).where(Location.city == city, Location.room == room)
             )
@@ -108,13 +122,15 @@ class LocationObj(CRUD):
     @staticmethod
     async def get_location_qr_code(session: async_session_factory, location_id: UUID) -> BufferedInputFile | None:
         try:
+            if not location_id:
+                return None
+
             location = await session.get(Location, location_id)
             if not location or not location.qr_code:
                 return None
 
-            qr_image = BytesIO(location.qr_code)
             input_file = BufferedInputFile(
-                file=qr_image.getvalue(),
+                file=location.qr_code,
                 filename="qr.png"
             )
             return input_file
