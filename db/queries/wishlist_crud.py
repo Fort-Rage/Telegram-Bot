@@ -17,6 +17,9 @@ class WishlistObj(CRUD):
     async def create(self, session, app_user_id: UUID, book_title: str, author: str,
                      comment: Optional[str] = None) -> bool:
         try:
+            if not app_user_id or not book_title or not author:
+                return False
+
             new_wishlist_item = WishList(app_user_id=app_user_id, book_title=book_title, author=author, comment=comment)
             session.add(new_wishlist_item)
             await session.commit()
@@ -31,6 +34,9 @@ class WishlistObj(CRUD):
 
     async def read(self, session: async_session_factory, app_user_id: UUID) -> list[WishList]:
         try:
+            if not app_user_id:
+                return []
+
             if await AppUserObj().is_admin(session=session, app_user_id=app_user_id):
                 query = select(WishList)
             else:
@@ -41,8 +47,14 @@ class WishlistObj(CRUD):
             logger.error(f"Error while retrieving WishList items: {e}")
             return []
 
-    async def update(self, session: async_session_factory, field: str, wish_id: UUID, new_value: str) -> bool:
+    async def update(self, session: async_session_factory, wish_id: UUID, field: str, new_value: str) -> bool:
         try:
+            if not wish_id or not field or not new_value:
+                return False
+
+            if not isinstance(field, str) or field not in WishList.__table__.columns:
+                return False
+
             wishlist_item = await session.get(WishList, wish_id)
             if not wishlist_item:
                 return False
@@ -61,6 +73,9 @@ class WishlistObj(CRUD):
 
     async def remove(self, session: async_session_factory, wish_id: UUID) -> bool:
         try:
+            if not wish_id:
+                return False
+
             wishlist_item = await session.get(WishList, wish_id)
             if not wishlist_item:
                 return False
@@ -75,6 +90,9 @@ class WishlistObj(CRUD):
 
     async def get_obj(self, session: async_session_factory, wish_id: UUID) -> WishList | None:
         try:
+            if not wish_id:
+                return None
+
             wishlist_item = await session.get(WishList, wish_id)
             return wishlist_item
         except SQLAlchemyError as e:
