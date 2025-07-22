@@ -1,7 +1,6 @@
 import logging
 import os
 
-from io import BytesIO
 from aiogram.types import BufferedInputFile
 from sqlalchemy import select, delete, exists
 from sqlalchemy.exc import SQLAlchemyError
@@ -178,9 +177,8 @@ class BookObj(CRUD):
             if not book or not book.qr_code:
                 return None
 
-            qr_image = BytesIO(book.qr_code)
             input_file = BufferedInputFile(
-                file=qr_image.getvalue(),
+                file=book.qr_code,
                 filename="qr.png"
             )
             return input_file
