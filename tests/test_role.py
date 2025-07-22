@@ -12,9 +12,7 @@ from db.queries.role_crud import RoleObj
 async def test_role_model(db_session, sample_roles):
     result = await db_session.execute(select(Roles).order_by(Roles.id))
     roles = result.scalars().all()
-
-    role_1 = await db_session.get(Roles, roles[0].id)
-    role_2 = await db_session.get(Roles, roles[1].id)
+    role_1, role_2 = roles[0], roles[1]
 
     assert role_1.name == "User"
     assert role_1.description == "Default user role"

@@ -10,12 +10,10 @@ from db.queries.tg_user_crud import TgUserObj
 async def test_tg_user_model(db_session, sample_tg_users):
     result = await db_session.execute(select(TelegramUsers).order_by(TelegramUsers.id))
     tg_users = result.scalars().all()
+    tg_user_1, tg_user_2 = tg_users[0], tg_users[1]
 
-    tg_user = await db_session.get(TelegramUsers, tg_users[0].id)
-    tg_user_2 = await db_session.get(TelegramUsers, tg_users[1].id)
-
-    assert tg_user.telegram_id == "12345"
-    assert tg_user.username == "user_a"
+    assert tg_user_1.telegram_id == "12345"
+    assert tg_user_1.username == "user_a"
 
     assert tg_user_2.telegram_id == "54321"
     assert tg_user_2.username == "admin_user"

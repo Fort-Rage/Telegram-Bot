@@ -10,9 +10,7 @@ from db.queries.employee_crud import EmployeeObj
 async def test_employee_model(db_session, sample_employees):
     result = await db_session.execute(select(Employees).order_by(Employees.id))
     employees = result.scalars().all()
-
-    employee_1 = await db_session.get(Employees, employees[0].id)
-    employee_2 = await db_session.get(Employees, employees[1].id)
+    employee_1, employee_2 = employees[0], employees[1]
 
     assert employee_1.full_name == "User A"
     assert employee_1.email == "user_a@example.com"

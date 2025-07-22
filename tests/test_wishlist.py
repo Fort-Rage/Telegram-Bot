@@ -14,9 +14,7 @@ async def test_wishlist_model(db_session, sample_wishlists):
     wishlists = result.scalars().all()
     result = await db_session.execute(select(AppUsers))
     app_users = result.scalars().all()
-
-    wishlist_1 = await db_session.get(WishList, wishlists[0].id)
-    wishlist_2 = await db_session.get(WishList, wishlists[1].id)
+    wishlist_1, wishlist_2 = wishlists[0], wishlists[1]
 
     assert wishlist_1.app_user_id == app_users[0].id
     assert wishlist_1.book_title == "Title" and wishlist_1.author == "Author" and wishlist_1.comment == "Good!"
