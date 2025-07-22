@@ -19,14 +19,9 @@ async def test_wishlist_model(db_session, sample_wishlists):
     wishlist_2 = await db_session.get(WishList, wishlists[1].id)
 
     assert wishlist_1.app_user_id == app_users[0].id
-    assert wishlist_1.book_title == "Title"
-    assert wishlist_1.author == "Author"
-    assert wishlist_1.comment == "Good!"
-
+    assert wishlist_1.book_title == "Title" and wishlist_1.author == "Author" and wishlist_1.comment == "Good!"
     assert wishlist_2.app_user_id == app_users[0].id
-    assert wishlist_2.book_title == "No Title"
-    assert wishlist_2.author == "No Author"
-    assert wishlist_2.comment is None
+    assert wishlist_2.book_title == "No Title" and wishlist_2.author == "No Author" and wishlist_2.comment is None
 
 
 @pytest.mark.asyncio
