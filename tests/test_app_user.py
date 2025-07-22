@@ -13,18 +13,18 @@ async def test_app_user_model(db_session, sample_app_users):
     result = await db_session.execute(select(AppUsers).order_by(AppUsers.id))
     app_users = result.scalars().all()
 
-    app_users_1 = await db_session.get(AppUsers, app_users[0].id)
-    app_users_2 = await db_session.get(AppUsers, app_users[1].id)
+    app_user_1 = await db_session.get(AppUsers, app_users[0].id)
+    app_user_2 = await db_session.get(AppUsers, app_users[1].id)
 
-    assert app_users_1.tg_user_id == app_users[0].tg_user_id
-    assert app_users_1.employee_id == app_users[0].employee_id
-    assert app_users_1.role_id == app_users[0].role_id
-    assert app_users_1.is_active is False
+    assert app_user_1.tg_user_id == app_users[0].tg_user_id
+    assert app_user_1.employee_id == app_users[0].employee_id
+    assert app_user_1.role_id == app_users[0].role_id
+    assert app_user_1.is_active is False
 
-    assert app_users_2.tg_user_id == app_users[1].tg_user_id
-    assert app_users_2.employee_id == app_users[1].employee_id
-    assert app_users_2.role_id == app_users[1].role_id
-    assert app_users_2.is_active is True
+    assert app_user_2.tg_user_id == app_users[1].tg_user_id
+    assert app_user_2.employee_id == app_users[1].employee_id
+    assert app_user_2.role_id == app_users[1].role_id
+    assert app_user_2.is_active is True
 
 
 @pytest.mark.asyncio
