@@ -192,11 +192,15 @@ async def test_wishlist_update(db_session, sample_wishlists, mocker):
 async def test_wishlist_remove(db_session, sample_wishlists, mocker):
     result = await db_session.execute(select(WishList).order_by(WishList.id))
     wishlists = result.scalars().all()
-    wishlist_1_id = wishlists[0].id
+    wishlist_1_id, wishlist_2_id = wishlists[0].id, wishlists[1].id
 
     wishlist_1 = await WishlistObj().remove(session=db_session, wish_id=wishlist_1_id)
     wishlist_2 = await WishlistObj().remove(session=db_session, wish_id=uuid7())
 
+    result = await db_session.execute(select(WishList).order_by(WishList.id))
+    wishlists = result.scalars().all()
+
+    assert len(wishlists) == 1
     assert wishlist_1 is True
     assert wishlist_2 is False
 
@@ -208,7 +212,7 @@ async def test_wishlist_remove(db_session, sample_wishlists, mocker):
     assert invalid_wishlist_2 is False
 
     mocker.patch.object(db_session, 'delete', side_effect=SQLAlchemyError("DB error"))
-    db_error_wishlist = await WishlistObj().remove(session=db_session, wish_id=wishlist_1_id)
+    db_error_wishlist = await WishlistObj().remove(session=db_session, wish_id=wishlist_2_id)
     assert db_error_wishlist is False
 
 
