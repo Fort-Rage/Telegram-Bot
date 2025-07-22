@@ -189,7 +189,7 @@ async def test_wishlist_update(db_session, sample_wishlists, mocker):
 
 
 @pytest.mark.asyncio
-async def test_wish_remove(db_session, sample_wishlists, mocker):
+async def test_wishlist_remove(db_session, sample_wishlists, mocker):
     result = await db_session.execute(select(WishList).order_by(WishList.id))
     wishlists = result.scalars().all()
     wishlist_1_id = wishlists[0].id
@@ -213,7 +213,7 @@ async def test_wish_remove(db_session, sample_wishlists, mocker):
 
 
 @pytest.mark.asyncio
-async def test_wish_get_obj(db_session, sample_app_users, sample_wishlists, mocker):
+async def test_wishlist_get_obj(db_session, sample_app_users, sample_wishlists, mocker):
     result = await db_session.execute(select(AppUsers).order_by(AppUsers.id))
     app_users = result.scalars().all()
     result = await db_session.execute(select(WishList).order_by(WishList.id))
