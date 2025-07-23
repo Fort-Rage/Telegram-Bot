@@ -38,9 +38,9 @@ class WishlistObj(CRUD):
                 return []
 
             if await AppUserObj().is_admin(session=session, app_user_id=app_user_id):
-                query = select(WishList)
+                query = select(WishList).order_by(WishList.id)
             else:
-                query = select(WishList).where(WishList.app_user_id == app_user_id)
+                query = select(WishList).where(WishList.app_user_id == app_user_id).order_by(WishList.id)
             result = await session.execute(query)
             return result.scalars().all()
         except SQLAlchemyError as e:

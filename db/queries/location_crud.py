@@ -48,7 +48,7 @@ class LocationObj(CRUD):
 
     async def read(self, session: async_session_factory) -> list[Location]:
         try:
-            result = await session.execute(select(Location))
+            result = await session.execute(select(Location).order_by(Location.id))
             return result.scalars().all()
         except SQLAlchemyError as e:
             logger.error(f"Error while retrieving locations: {e}")
