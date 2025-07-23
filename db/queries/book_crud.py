@@ -21,13 +21,18 @@ class BookObj(CRUD):
     async def create(self, session: async_session_factory, title: str, author: str, description: str, owner_id: UUID,
                      categories: list, location_id: UUID) -> bool:
         try:
+            if not title or not author or not description or not owner_id or not categories or not location_id:
+                return False
+
             book = Book(
-                title=title,
-                description=description,
-                author=author,
-                owner_id=owner_id,
-                location_id=location_id,
+                title=title, description=description, author=author,
+                owner_id=owner_id, location_id=location_id,
             )
+
+            for category in categories:
+                if category not in Category.__members__.values():
+                    logger.error(f"Invalid category: {category}")
+                    return False
 
             for category in categories:
                 book.book_categories.append(BookCategory(category=category))
@@ -51,6 +56,9 @@ class BookObj(CRUD):
 
     async def read(self, session: async_session_factory, available_books: bool = True) -> list[Book]:
         try:
+            if not available_books:
+                return []
+
             if available_books:
                 result = await session.execute(
                     select(Book).filter(
@@ -58,10 +66,10 @@ class BookObj(CRUD):
                             (Order.book_id == Book.id) &
                             (Order.status.in_([OrderStatus.RESERVED, OrderStatus.IN_PROCESS]))
                         )
-                    )
+                    ).order_by(Book.id)
                 )
             else:
-                result = await session.execute(select(Book))
+                result = await session.execute(select(Book).order_by(Book.id))
 
             books = result.scalars().all()
             return books
@@ -71,15 +79,16 @@ class BookObj(CRUD):
 
     async def update(self, session: async_session_factory, book_id: UUID, updates: dict) -> bool:
         try:
+            if not book_id or not updates:
+                return False
+
             book = await session.get(Book, book_id)
 
             if not book:
                 return False
 
             for field, value in updates.items():
-                if field == "owner_id":
-                    setattr(book, field, value)
-                elif field == "description":
+                if field == "description":
                     setattr(book, field, value if value != '-' else None)
                 elif field != "categories":
                     setattr(book, field, value)
