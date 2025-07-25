@@ -15,8 +15,8 @@ class TelegramUsers(Base):
     __tablename__ = 'tg_users'
 
     id: Mapped[uuid6.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid6.uuid7)
-    telegram_id: Mapped[str] = mapped_column(String, unique=True)
-    username: Mapped[str] = mapped_column(String)
+    telegram_id: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    username: Mapped[str] = mapped_column(String, nullable=False)
 
     created_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())

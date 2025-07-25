@@ -48,27 +48,27 @@ async def action_order_kb(action: str, orders: list) -> InlineKeyboardMarkup:
             if order.status == OrderStatus.RESERVED:
                 builder.add(InlineKeyboardButton(
                     text=f"{order.book.title}",
-                    callback_data=f"order_{action}_{order.order_id}"
+                    callback_data=f"order_{action}_{order.id}"
                 ))
     elif action == 'detail':
         for order in orders:
             builder.add(InlineKeyboardButton(
                 text=f"{order.book.title}",
-                callback_data=f"order_{action}_{order.order_id}"
+                callback_data=f"order_{action}_{order.id}"
             ))
 
     builder.add(InlineKeyboardButton(text="⬅️ Back to Menu", callback_data="back_to_order"))
     return builder.adjust(1).as_markup()
 
 
-async def return_order_kb(orders: list, location_id: int):
+async def return_order_kb(orders: list):
     builder = InlineKeyboardBuilder()
 
     for order in orders:
         if order.status == OrderStatus.IN_PROCESS:
             builder.add(InlineKeyboardButton(
                 text=f"{order.book.title}",
-                callback_data=f"order_return_{order.order_id}_{location_id}"
+                callback_data=f"order_return_{order.id}"
             ))
 
     builder.add(InlineKeyboardButton(text="⬅️ Back to Menu", callback_data="back_to_order"))

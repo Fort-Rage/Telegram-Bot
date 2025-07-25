@@ -1,6 +1,10 @@
 from math import ceil
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, KeyboardButton, ReplyKeyboardMarkup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from uuid6 import UUID
+
+from db.database import async_session_factory
+from db.queries.app_user_crud import AppUserObj
 
 book_confirmation_kb = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -47,7 +51,7 @@ user_book_kb = InlineKeyboardMarkup(
 )
 
 
-def category_kb(result):
+def category_kb(result: list) -> ReplyKeyboardMarkup:
     keyboard = ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text=category)] for category in result] +
                  [[KeyboardButton(text="✅ Done")]],
@@ -56,7 +60,7 @@ def category_kb(result):
     return keyboard
 
 
-def book_list_kb(books, action, page: int = 1, per_page: int = 5):
+def book_list_kb(books: list, action: str, page: int = 1, per_page: int = 5) -> InlineKeyboardMarkup:
     total_pages = ceil(len(books) / per_page)
     start_idx = (page - 1) * per_page
     end_idx = min(start_idx + per_page, len(books))
@@ -65,7 +69,7 @@ def book_list_kb(books, action, page: int = 1, per_page: int = 5):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(
-                text=f'{index + 1}: {book.title}', callback_data=f"{action}_select_{book.book_id}"
+                text=f'{index + 1}: {book.title}', callback_data=f"{action}_select_{book.id}"
             )] for index, book in enumerate(books_page)
         ]
     )
@@ -85,7 +89,7 @@ def book_list_kb(books, action, page: int = 1, per_page: int = 5):
     return keyboard
 
 
-def book_update_kb():
+def book_update_kb() -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -104,21 +108,18 @@ def book_update_kb():
                 InlineKeyboardButton(text='Save changes', callback_data="save_changes"),
             ],
             [
-                InlineKeyboardButton(text='⬅️ Go back', callback_data="book_update_back")
-            ],
-            [
-                InlineKeyboardButton(text='Exit', callback_data="book_cancel_update")
+                InlineKeyboardButton(text='Cancel changes', callback_data="book_cancel_update")
             ]
         ]
     )
     return keyboard
 
 
-def order_cancel_kb(book_id: int, location_id: int, is_admin: False):
+def order_cancel_kb(book_id: UUID, is_admin: False) -> InlineKeyboardMarkup:
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="Order", callback_data=f"order-book_{book_id}_{location_id}"),
+                InlineKeyboardButton(text="Order", callback_data=f"order-book_{book_id}"),
                 InlineKeyboardButton(text="⬅️ Go back", callback_data="book_view_back"),
             ]
         ]
@@ -131,14 +132,21 @@ def order_cancel_kb(book_id: int, location_id: int, is_admin: False):
     return keyboard
 
 
-def owners_kb(result):
-    return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text=f'{user.name} {user.surname}')] for user in result],
-        resize_keyboard=True
-    )
+async def owners_kb(result: list, action: str) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+
+    async with async_session_factory() as session:
+        for user in result:
+            fullname = await AppUserObj().get_employee_fullname(session=session, app_user_id=user.id)
+            builder.button(
+                text=fullname,
+                callback_data=f"select_owner_{action}:{user.id}"
+            )
+
+    return builder.adjust(2).as_markup()
 
 
-def create_book_kb():
+def create_book_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="Confirm", callback_data="create_book_confirm")],
@@ -147,8 +155,8 @@ def create_book_kb():
     )
 
 
-def back_to_books_menu_kb():
-    keyboard = InlineKeyboardMarkup(
+def back_to_books_menu_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(text="Books menu", callback_data="back_to_list"),
@@ -157,10 +165,8 @@ def back_to_books_menu_kb():
         ]
     )
 
-    return keyboard
 
-
-def create_loc_or_exit():
+def create_loc_or_exit() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="Create location", callback_data="add_location")],
@@ -175,7 +181,7 @@ def show_books_kb(books: list) -> InlineKeyboardMarkup:
     for book in books:
         keyboard.add(InlineKeyboardButton(
             text=f"{book.author}: {book.title}",
-            callback_data=f"qr_book_{book.book_id}"
+            callback_data=f"qr_book_{book.id}"
         ))
 
     keyboard.adjust(2)

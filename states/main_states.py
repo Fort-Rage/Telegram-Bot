@@ -2,8 +2,8 @@ from aiogram.fsm.state import StatesGroup, State
 
 
 class Reg(StatesGroup):
-    name = State()
-    surname = State()
+    email = State()
+    code = State()
 
 
 class Wish(StatesGroup):
@@ -41,7 +41,6 @@ class Books(StatesGroup):
     waiting_for_confirmation = State()
     location = State()
     owner = State()
-    select_categories = State()
     save_book = State()
     delete_book = State()
 

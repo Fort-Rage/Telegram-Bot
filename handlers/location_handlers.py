@@ -2,9 +2,12 @@ from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
+from uuid6 import UUID
+
 from db.database import async_session_factory
+from db.queries.book_crud import BookObj
 from db.queries.location_crud import LocationObj
-from db.queries.user_crud import UserObj
+from db.queries.app_user_crud import AppUserObj
 from keyboards import location_kbs as loc_kbs
 from states.main_states import LocationForm
 
@@ -14,8 +17,9 @@ router = Router()
 @router.message(Command('locations'))
 async def show_locations(message: Message):
     async with async_session_factory() as session:
-        locations = await LocationObj().read(session)
-        user_admin = await UserObj().is_admin(session=session, telegram_id=message.from_user.id)
+        app_user_id = await AppUserObj().get_app_user_id(session=session, telegram_id=str(message.from_user.id))
+        locations = await LocationObj().read(session=session)
+        user_admin = await AppUserObj().is_admin(session=session, app_user_id=app_user_id)
 
         if locations:
             response_text = "📍Locations: \n"
@@ -35,7 +39,7 @@ async def show_locations(message: Message):
 async def add_location_city(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await callback.message.delete()
-    result = await LocationObj.get_cities()
+    result = await LocationObj().get_cities()
 
     await callback.message.answer("🏙️ Choose city:", reply_markup=loc_kbs.city_kb(result))
     await state.set_state(LocationForm.add_location_city)
@@ -61,23 +65,21 @@ async def confirmation_callback(callback: CallbackQuery, state: FSMContext):
     new_location_room = data.get("room")
     call_from_book = data.get('prev_callback', 'no')
     async with async_session_factory() as session:
-        location_id = await LocationObj.get_location_id(new_location_city, new_location_room, session)
-        new_location = await LocationObj().get_obj(location_id, session)
-
+        location_id = await LocationObj().get_location_id(session=session, city=new_location_city,
+                                                          room=new_location_room)
     await callback.message.edit_reply_markup(reply_markup=None)
     kb = loc_kbs.back_to_loc_menu()
-    if new_location:
+    if location_id:
         await callback.message.answer(
             f"🚫 New location '{new_location_city}: {new_location_room} ' already exists! Try again:",
             reply_markup=kb
         )
         await state.set_state(LocationForm.add_location_city)
-
     else:
         await LocationObj().create(
+            session=session,
             city=new_location_city,
-            room=new_location_room,
-            session=session
+            room=new_location_room
         )
         if call_from_book != 'no':
             kb = loc_kbs.back_to_loc_or_book()
@@ -102,7 +104,7 @@ async def cancel_callback(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(F.data == 'update_location')
 async def update_location(callback: CallbackQuery, state: FSMContext):
     async with async_session_factory() as session:
-        result = await LocationObj().read(session)
+        result = await LocationObj().read(session=session)
     if result:
         await callback.message.edit_reply_markup(reply_markup=None)
         await callback.message.answer("📍Choose location to update: ", reply_markup=loc_kbs.locations_kb(result))
@@ -117,10 +119,10 @@ async def update_location_callback_id(message: Message, state: FSMContext):
     loc_city = message.text.split(':')[0]
     loc_room = message.text.split(':')[1].strip()
     async with async_session_factory() as session:
-        location_id = await LocationObj.get_location_id(loc_city, loc_room, session)
+        location_id = await LocationObj().get_location_id(session=session, city=loc_city, room=loc_room)
         await state.update_data(location_id=location_id)
-        if await LocationObj().get_obj(int(location_id), session):
-            result = await LocationObj.get_cities()
+        if await LocationObj().get_obj(session=session, location_id=location_id):
+            result = await LocationObj().get_cities()
             await message.answer("🏙 Choose City:", reply_markup=loc_kbs.city_kb(result))
             await state.set_state(LocationForm.update_location_city)
         else:
@@ -144,10 +146,10 @@ async def update_location_callback_name(message: Message, state: FSMContext):
 
     async with async_session_factory() as session:
         success = await LocationObj().update(
-            location_id=int(data.get('location_id')),
+            session=session,
+            location_id=data.get('location_id'),
             city=city,
-            room=loc_room_number,
-            session=session
+            room=loc_room_number
         )
 
     if success:
@@ -160,7 +162,7 @@ async def update_location_callback_name(message: Message, state: FSMContext):
 @router.callback_query(F.data == 'remove_location')
 async def remove_location_callback(callback: CallbackQuery, state: FSMContext):
     async with async_session_factory() as session:
-        result = await LocationObj().read(session)
+        result = await LocationObj().read(session=session)
     if result:
         await callback.message.edit_reply_markup(reply_markup=None)
         await callback.message.answer("📍 Choose a location to delete:", reply_markup=loc_kbs.locations_kb(result))
@@ -174,22 +176,13 @@ async def remove_location_confirm(message: Message, state: FSMContext):
     loc_city = message.text.split(':')[0]
     loc_room = message.text.split(':')[1].strip()
     async with async_session_factory() as session:
-        location_id = await LocationObj.get_location_id(loc_city, loc_room, session)
+        location_id = await LocationObj().get_location_id(session=session, city=loc_city, room=loc_room)
 
     await state.update_data(location_id=location_id)
     async with async_session_factory() as session:
-        if await LocationObj().remove(int(location_id), session):
-            await message.answer(
-                "✅ The location has been successfully deleted!",
-                reply_markup=ReplyKeyboardRemove()
-            )
-            await message.answer(
-                "You can go back to the Locations menu 🔙 ",
-                reply_markup=loc_kbs.back_to_loc_menu()
-            )
-            await state.clear()
+        books = await BookObj().get_books_by_location(session=session, location_id=location_id)
 
-        else:
+        if books:
             await message.answer(
                 "⚠️ This location cannot be deleted while it contains books!",
                 reply_markup=ReplyKeyboardRemove()
@@ -198,6 +191,23 @@ async def remove_location_confirm(message: Message, state: FSMContext):
                 "You can go back to the Locations menu 🔙 ",
                 reply_markup=loc_kbs.back_to_loc_menu()
             )
+        else:
+            success = await LocationObj().remove(session=session, location_id=location_id)
+
+            if success:
+                await message.answer(
+                    "✅ The location has been successfully deleted!",
+                    reply_markup=ReplyKeyboardRemove()
+                )
+                await message.answer(
+                    "You can go back to the Locations menu 🔙 ",
+                    reply_markup=loc_kbs.back_to_loc_menu()
+                )
+                await state.clear()
+            else:
+                await message.answer(f"❌ Oops! Failed to delete the location\n\n"
+                                     f"🔄 <i>Please try again later</i>",
+                                     reply_markup=loc_kbs.back_to_loc_menu(), parse_mode='HTML')
 
 
 @router.callback_query(F.data == 'qrcode_location')
@@ -216,10 +226,10 @@ async def detail_location(callback: CallbackQuery):
 @router.callback_query(F.data.startswith('show_qrcode_'))
 async def detail_location(callback: CallbackQuery):
     await callback.answer()
-    location_id = callback.data.split("_")[2]
+    location_id = UUID(callback.data.split("_")[2])
 
     async with async_session_factory() as session:
-        qr_code = await LocationObj().get_qr_code(int(location_id), session)
+        qr_code = await LocationObj().get_location_qr_code(session=session, location_id=location_id)
 
     await callback.message.answer_photo(qr_code)
 
@@ -230,7 +240,7 @@ async def back_to_loc_menu_callback(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
     async with async_session_factory() as session:
-        locations = await LocationObj().read(session)
+        locations = await LocationObj().read(session=session)
 
         if locations:
             response_text = "📍Locations: \n"

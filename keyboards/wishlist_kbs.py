@@ -1,5 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from uuid6 import UUID
 
 add_wishlist_kb = InlineKeyboardMarkup(
     inline_keyboard=[
@@ -48,20 +49,20 @@ back_to_wishlist_kb = InlineKeyboardMarkup(
 )
 
 
-async def action_wishlist_kb(wishlists: list, action: str) -> InlineKeyboardMarkup:
+def action_wishlist_kb(wishlists: list, action: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
 
     for wish in wishlists:
         builder.add(InlineKeyboardButton(
             text=f"{wish.book_title} - {wish.author}",
-            callback_data=f"wishlist_{action}_{wish.wish_list_id}"
+            callback_data=f"wishlist_{action}_{wish.id}"
         ))
     builder.add(InlineKeyboardButton(text="⬅️ Back to Menu", callback_data="back_to_wishlist"))
 
     return builder.adjust(1).as_markup()
 
 
-async def rm_confirm_kb(wish_id: int) -> InlineKeyboardMarkup:
+def rm_confirm_kb(wish_id: UUID) -> InlineKeyboardMarkup:
     markup = InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -73,7 +74,7 @@ async def rm_confirm_kb(wish_id: int) -> InlineKeyboardMarkup:
     return markup
 
 
-async def back_to_wishlist_upd_kb(wish_id: int) -> InlineKeyboardMarkup:
+def back_to_wishlist_upd_kb(wish_id: UUID) -> InlineKeyboardMarkup:
     markup = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="⬅️ Go back", callback_data=f"wishlist_upd_{wish_id}")]
