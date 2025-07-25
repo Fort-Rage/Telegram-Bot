@@ -3,9 +3,10 @@ from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
+from uuid6 import UUID
 
 from db.database import async_session_factory
-from db.queries.user_crud import UserObj
+from db.queries.app_user_crud import AppUserObj
 from db.queries.wishlist_crud import WishlistObj
 from handlers.registration_handler import cmd_start
 from states.main_states import Wish, WishUpdBookTitle, WishUpdAuthor, WishUpdComment
@@ -16,14 +17,15 @@ router = Router()
 
 @router.message(Command("wishlists"))
 async def wishlist_handler(message: Message):
-    user_id = message.from_user.id
+    telegram_id = message.from_user.id
 
     async with async_session_factory() as session:
-        wishlist_items = await WishlistObj().read(session=session, user_id=user_id)
-        is_user_registered = await UserObj().is_user_registered(session=session, telegram_id=user_id)
-        is_admin = await UserObj().is_admin(session=session, telegram_id=user_id)
+        app_user_id = await AppUserObj().get_app_user_id(session=session, telegram_id=str(telegram_id))
+        wishlist_items = await WishlistObj().read(session=session, app_user_id=app_user_id)
+        is_registered = await AppUserObj().is_registered(session=session, telegram_id=str(telegram_id))
+        is_admin = await AppUserObj().is_admin(session=session, app_user_id=app_user_id)
 
-        if is_user_registered:
+        if is_registered:
             if is_admin:
                 message_text = "⭐ List of all wishlists:\n\n" if wishlist_items else ("📭 The wishlist is "
                                                                                       "currently empty!")
@@ -71,9 +73,10 @@ async def wish_comment(message: Message, state: FSMContext):
     comment = None if message.text == "-" else message.text
 
     async with async_session_factory() as session:
+        app_user_id = await AppUserObj().get_app_user_id(session=session, telegram_id=str(message.from_user.id))
         success = await WishlistObj().create(
             session=session,
-            user_id=message.from_user.id,
+            app_user_id=app_user_id,
             book_title=data.get('book_title'),
             author=data.get('author'),
             comment=comment
@@ -98,11 +101,11 @@ async def wish_comment(message: Message, state: FSMContext):
 @router.callback_query(F.data.startswith("wishlist-"))
 async def action_wishlist(callback: CallbackQuery):
     await callback.answer()
-    user_id = callback.from_user.id
 
     async with async_session_factory() as session:
-        wishlist_items = await WishlistObj().read(session=session, user_id=user_id)
-        is_admin = await UserObj().is_admin(session=session, telegram_id=user_id)
+        app_user_id = await AppUserObj().get_app_user_id(session=session, telegram_id=str(callback.from_user.id))
+        wishlist_items = await WishlistObj().read(session=session, app_user_id=app_user_id)
+        is_admin = await AppUserObj().is_admin(session=session, app_user_id=app_user_id)
 
     action = callback.data.split("-")[1]
     message_text = ""
@@ -128,16 +131,15 @@ async def action_wish_id(callback: CallbackQuery, state: FSMContext):
     _, action, wish_id = callback.data.split("_")
 
     async with async_session_factory() as session:
-        wishlist_item = await WishlistObj().get_obj(session=session, wish_id=int(wish_id))
-        is_admin = await UserObj().is_admin(session=session, telegram_id=callback.from_user.id)
+        app_user_id = await AppUserObj().get_app_user_id(session=session, telegram_id=str(callback.from_user.id))
+        wishlist_item = await WishlistObj().get_obj(session=session, wish_id=wish_id)
+        is_admin = await AppUserObj().is_admin(session=session, app_user_id=app_user_id)
 
         if wishlist_item:
             comment, book_title, author = wishlist_item.comment, wishlist_item.book_title, wishlist_item.author
             created_at = wishlist_item.created_at
 
-        user = await UserObj().get_obj(session=session, telegram_id=wishlist_item.user_id)
-        if user:
-            surname, name = user.surname, user.name
+        app_user_full_name = await AppUserObj().get_employee_fullname(session=session, app_user_id=app_user_id)
 
     message_text = ""
     keyboard = None
@@ -147,7 +149,7 @@ async def action_wish_id(callback: CallbackQuery, state: FSMContext):
         message_text = (
                 f"📖 <b>{book_title}</b>\n"
                 f"✍️ <b>Author:</b> {author}\n"
-                + (f"\n👤 <b>Added by:</b> {surname} {name}\n" if is_admin else "")
+                + (f"\n👤 <b>Added by:</b> {app_user_full_name or 'Unknown'}\n" if is_admin else "")
                 + f"📝 <b>Comment:</b> {comment}\n\n"
                   f"📅 <b>Added on:</b> {(created_at + timedelta(hours=5)).strftime('%Y-%m-%d %H:%M')}"
         )
@@ -168,7 +170,7 @@ async def action_wish_id(callback: CallbackQuery, state: FSMContext):
             f"{'the wishlists' if is_admin else 'your wishlist'}?\n\n"
             f"<i>This action cannot be undone!</i>"
         )
-        keyboard = await wish_kbs.rm_confirm_kb(int(wish_id))
+        keyboard = await wish_kbs.rm_confirm_kb(wish_id)
 
     await callback.message.edit_text(message_text, reply_markup=keyboard, parse_mode='HTML')
 # endregion
@@ -189,11 +191,11 @@ async def upd_wish_book_title(message: Message, state: FSMContext):
     wish_id = data.get('wish_id')
 
     async with async_session_factory() as session:
-        wishlist_item = await WishlistObj().get_obj(session=session, wish_id=int(wish_id))
+        wishlist_item = await WishlistObj().get_obj(session=session, wish_id=wish_id)
         if wishlist_item:
             book_title = wishlist_item.book_title
         success = await WishlistObj().update(session=session, field="book_title",
-                                             wish_id=int(wish_id), new_value=message.text)
+                                             wish_id=wish_id, new_value=message.text)
 
     keyboard = await wish_kbs.back_to_wishlist_upd_kb(wish_id)
     
@@ -222,11 +224,11 @@ async def upd_wish_author(message: Message, state: FSMContext):
     wish_id = data.get('wish_id')
 
     async with async_session_factory() as session:
-        wishlist_item = await WishlistObj().get_obj(session=session, wish_id=int(wish_id))
+        wishlist_item = await WishlistObj().get_obj(session=session, wish_id=wish_id)
         if wishlist_item:
             book_title = wishlist_item.book_title
         success = await WishlistObj().update(session=session, field="author",
-                                             wish_id=int(wish_id), new_value=message.text)
+                                             wish_id=wish_id, new_value=message.text)
 
     keyboard = await wish_kbs.back_to_wishlist_upd_kb(wish_id)
     
@@ -258,11 +260,11 @@ async def upd_wish_comment(message: Message, state: FSMContext):
     keyboard = await wish_kbs.back_to_wishlist_upd_kb(wish_id)
 
     async with async_session_factory() as session:
-        wishlist_item = await WishlistObj().get_obj(session=session, wish_id=int(wish_id))
+        wishlist_item = await WishlistObj().get_obj(session=session, wish_id=wish_id)
         if wishlist_item:
             book_title = wishlist_item.book_title
         success = await WishlistObj().update(session=session, field="comment",
-                                             wish_id=int(wish_id), new_value=new_comment)
+                                             wish_id=wish_id, new_value=new_comment)
     
     if success:
         if new_comment is None:
@@ -289,14 +291,15 @@ async def upd_wish_comment(message: Message, state: FSMContext):
 @router.callback_query(F.data.startswith("wish_confirm_"))
 async def remove_wish_id(callback: CallbackQuery):
     await callback.answer()
-    wish_id = callback.data.split("_")[2]
+    wish_id = UUID(callback.data.split("_")[2])
 
     async with async_session_factory() as session:
-        wishlist_item = await WishlistObj().get_obj(session=session, wish_id=int(wish_id))
+        app_user_id = await AppUserObj().get_app_user_id(session=session, telegram_id=str(callback.from_user.id))
+        wishlist_item = await WishlistObj().get_obj(session=session, wish_id=wish_id)
         if wishlist_item:
             book_title = wishlist_item.book_title
-        success = await WishlistObj().remove(session=session, wish_id=int(wish_id))
-        is_admin = await UserObj().is_admin(session=session, telegram_id=callback.from_user.id)
+        success = await WishlistObj().remove(session=session, wish_id=wish_id)
+        is_admin = await AppUserObj().is_admin(session=session, app_user_id=app_user_id)
 
     message_text = (
         f"🗑 <b>\"{book_title}\"</b> has been deleted from "
@@ -311,13 +314,14 @@ async def remove_wish_id(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("wish_cancel_"))
 async def remove_wish_id(callback: CallbackQuery):
-    wish_id = callback.data.split("_")[2]
+    wish_id = UUID(callback.data.split("_")[2])
 
     async with async_session_factory() as session:
-        wishlist_item = await WishlistObj().get_obj(session=session, wish_id=int(wish_id))
+        app_user_id = await AppUserObj().get_app_user_id(session=session, telegram_id=str(callback.from_user.id))
+        wishlist_item = await WishlistObj().get_obj(session=session, wish_id=wish_id)
         if wishlist_item:
             book_title = wishlist_item.book_title
-        is_admin = await UserObj().is_admin(session=session, telegram_id=callback.from_user.id)
+        is_admin = await AppUserObj().is_admin(session=session, app_user_id=app_user_id)
 
     await callback.message.edit_text(
         f"❌ Action canceled. The <b>\"{book_title}\"</b> remains in "
@@ -331,11 +335,11 @@ async def remove_wish_id(callback: CallbackQuery):
 async def back_to_wishlist(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
     await state.clear()
-    user_id = callback.from_user.id
 
     async with async_session_factory() as session:
-        wishlist_items = await WishlistObj().read(session=session, user_id=user_id)
-        is_admin = await UserObj().is_admin(session=session, telegram_id=user_id)
+        app_user_id = await AppUserObj().get_app_user_id(session=session, telegram_id=str(callback.from_user.id))
+        wishlist_items = await WishlistObj().read(session=session, app_user_id=app_user_id)
+        is_admin = await AppUserObj().is_admin(session=session, app_user_id=app_user_id)
 
         if is_admin:
             text = "⭐ List of all wishlists:\n\n" if wishlist_items else "📭 The wishlist is currently empty!"

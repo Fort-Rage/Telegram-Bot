@@ -1,25 +1,38 @@
 import logging
-from io import BytesIO
+import os
 
 from aiogram.types import BufferedInputFile
 from sqlalchemy import select, delete, exists
 from sqlalchemy.exc import SQLAlchemyError
+from uuid6 import UUID
+
 from QR.create_qr import make_qr
-from db.models import Book, BookCategory, Category, Location, Order, OrderStatus
+from db.database import async_session_factory
+from db.models import Book, BookCategory, Category, Order, OrderStatus
 from interface import CRUD
+from dotenv import load_dotenv
+
+load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 class BookObj(CRUD):
-
-    async def create(self, title, author, description, owner_id, categories, location_id, session):
+    async def create(self, session: async_session_factory, title: str, author: str, description: str, owner_id: UUID,
+                     categories: list, location_id: UUID) -> bool:
         try:
+            if not title or not author or not description or not owner_id or not categories or not location_id:
+                return False
+
             book = Book(
-                title=title,
-                description=description,
-                author=author,
-                owner_id=owner_id,
-                location_id=location_id,
+                title=title, description=description, author=author,
+                owner_id=owner_id, location_id=location_id,
             )
+
+            for category in categories:
+                if category not in Category.__members__.values():
+                    logger.error(f"Invalid category: {category}")
+                    return False
 
             for category in categories:
                 book.book_categories.append(BookCategory(category=category))
@@ -27,49 +40,58 @@ class BookObj(CRUD):
             session.add(book)
             await session.flush()
 
-            qr_data = f"https://t.me/ZhidaoCnBot?start=book_{book.book_id}"
+            bot = os.getenv('BOT_NAME')
+
+            qr_data = f"https://t.me/{bot}?start=book_{book.id}"
             qr_code_bytes = make_qr(qr_data)
             book.qr_code = qr_code_bytes
 
             await session.commit()
-            return book
-
+            return True
         except SQLAlchemyError as e:
             await session.rollback()
-            logging.error(e)
-            return None
+            logger.error(f"Error while creating Book (title='{title}', author='{author}', "
+                         f"owner_id={owner_id}, location_id='{location_id}'): {e}")
+            return False
 
-    async def read(self, session, available_books: bool = True):
+    async def read(self, session: async_session_factory, available_books: bool = True) -> list[Book]:
         try:
+            if not available_books:
+                return []
+
             if available_books:
                 result = await session.execute(
                     select(Book).filter(
                         ~exists().where(
-                            (Order.book_id == Book.book_id) &
+                            (Order.book_id == Book.id) &
                             (Order.status.in_([OrderStatus.RESERVED, OrderStatus.IN_PROCESS]))
                         )
-                    )
+                    ).order_by(Book.id)
                 )
             else:
-                result = await session.execute(select(Book))
+                result = await session.execute(select(Book).order_by(Book.id))
 
             books = result.scalars().all()
             return books
-
         except SQLAlchemyError as e:
-            logging.error(f"=== Database error: {e}")
-            return None
+            logger.error(f"Error while retrieving books: {e}")
+            return []
 
-    async def update(self, book_id: int, updates: dict, session):
+    async def update(self, session: async_session_factory, book_id: UUID, updates: dict) -> bool:
         try:
+            if not book_id or not updates:
+                return False
+
             book = await session.get(Book, book_id)
 
-            for field, value in updates.items():
-                if field != "categories":
-                    setattr(book, field, value)
+            if not book:
+                return False
 
-                if field == "owner_id":
-                    setattr(book, field, int(value))
+            for field, value in updates.items():
+                if field == "description":
+                    setattr(book, field, value if value != '-' else None)
+                elif field != "categories":
+                    setattr(book, field, value)
 
             if "categories" in updates:
                 selected_categories = updates["categories"].split(", ")
@@ -80,12 +102,13 @@ class BookObj(CRUD):
                         category_key = category.upper().replace(" ", "_")
                         selected_categories_enum.append(Category[category_key])
                     except KeyError:
-                        return None
+                        logger.warning(f"Invalid category '{category}' provided for Book id={book_id}. Update aborted.")
+                        return False
 
-                current_categories = await session.execute(
+                result = await session.execute(
                     select(BookCategory).where(BookCategory.book_id == book_id)
                 )
-                current_categories = current_categories.scalars().all()
+                current_categories = result.scalars().all()
                 current_categories_enum = {bc.category for bc in current_categories}
 
                 removing_categories = current_categories_enum - set(selected_categories_enum)
@@ -102,71 +125,83 @@ class BookObj(CRUD):
                     session.add(BookCategory(book_id=book_id, category=category))
 
             await session.commit()
-            return book
-
+            return True
         except SQLAlchemyError as e:
             await session.rollback()
-            logging.error(f"=== Database error: {e}")
-            return None
+            logger.error(f"Error while updating Book with id={book_id}: {e}")
+            return False
 
-    async def remove(self, book_id, session):
+    async def remove(self, session: async_session_factory, book_id: UUID) -> bool:
         try:
             delete_book = await session.execute(
                 delete(Book)
-                .where(Book.book_id == book_id)
-                .returning(Book.book_id)
+                .where(Book.id == book_id)
+                .returning(Book.id)
             )
 
-            if delete_book.scalar_one_or_none():
-                await session.execute(
-                    delete(BookCategory)
-                    .where(BookCategory.book_id == book_id)
-                )
-                await session.commit()
-                return True
+            deleted_id = delete_book.scalar_one_or_none()
 
-            return False
+            if not deleted_id:
+                return False
 
+            await session.execute(
+                delete(BookCategory)
+                .where(BookCategory.book_id == book_id)
+            )
+            await session.commit()
+            return True
         except SQLAlchemyError as e:
             await session.rollback()
-            logging.error(f"=== Database error: {e}")
+            logger.error(f"Error while removing Book with id={book_id}: {e}")
             return False
 
-    async def get_obj(self, book_id, session):
+    async def get_obj(self, session: async_session_factory, book_id: UUID) -> Book | None:
         try:
             book = await session.get(Book, book_id)
             return book
         except SQLAlchemyError as e:
-            logging.error(f"=== Database error: {e}")
+            logger.error(f"Error while retrieving Book with id={book_id}: {e}")
             return None
 
     @staticmethod
-    async def get_book_categories(book_id, session):
-        result = await session.execute(select(BookCategory.category).where(BookCategory.book_id == book_id))
-        categories = result.scalars().all()
-        return [Category(cat).value for cat in categories]
+    async def get_book_categories(session: async_session_factory, book_id: UUID) -> list:
+        try:
+            result = await session.execute(
+                select(BookCategory.category).where(BookCategory.book_id == book_id)
+            )
+            categories = result.scalars().all()
+            return [Category(cat).value for cat in categories]
+        except SQLAlchemyError as e:
+            logger.error(f"Error while retrieving categories for Book with id={book_id}: {e}")
+            return []
 
     @staticmethod
     async def get_categories():
         return [cat for cat in Category]
 
     @staticmethod
-    async def get_book_location(loc_id: int, session):
+    async def get_book_qr_code(session: async_session_factory, book_id: UUID) -> BufferedInputFile | None:
         try:
-            location = await session.get(Location, loc_id)
-            return location
-        except SQLAlchemyError as e:
-            logging.error(f"{e}")
+            book = await session.get(Book, book_id)
+            if not book or not book.qr_code:
+                return None
 
-    @staticmethod
-    async def get_book_qr(book_id, session):
-        book = await session.get(Book, book_id)
-        if book:
-            qr_image = BytesIO(book.qr_code)
             input_file = BufferedInputFile(
-                file=qr_image.getvalue(),
+                file=book.qr_code,
                 filename="qr.png"
             )
             return input_file
-        else:
+        except SQLAlchemyError as e:
+            logger.error(f"Error while retrieving QR code for Book (id={book_id}): {e}")
             return None
+
+    @staticmethod
+    async def get_books_by_location(session: async_session_factory, location_id: UUID) -> list[Book]:
+        try:
+            result = await session.execute(
+                select(Book).where(Book.location_id == location_id)
+            )
+            return result.scalars().all()
+        except SQLAlchemyError as e:
+            logger.error(f"Error when retrieving books by location (id={location_id}): {e}")
+            return []
